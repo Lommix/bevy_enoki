@@ -8,6 +8,14 @@ keywords = ["bevy", "particles", "shader", "2d", "particle"]
 repository = "https://github.com/Lommix/"
 license = "MIT"
 
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[features]
+dev = ["bevy/file_watcher", "bevy/dynamic_linking", "bevy/embedded_watcher"]
 
 [dependencies]
 bevy = { version = "0.13.1", default-features = false, features = [
@@ -28,7 +36,6 @@ bevy = { version = "0.13.1", default-features = false, features = [
   "multi-threaded",
   "wayland",
   "default_font",
-  "file_watcher",
 ] }
 bevy_egui = "0.26.0"
 

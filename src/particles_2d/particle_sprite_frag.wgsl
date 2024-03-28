@@ -16,7 +16,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 	var uv = in.uv;
 	let max_frame = f32(uni.frames + 1);
 	let frame_step = 1. / max_frame;
-	let current_frame = u32(max_frame * (in.lifetime));
+	let current_frame = u32(max_frame * (in.lifetime_frac));
 	uv.x = uv.x / max_frame + f32(current_frame) * frame_step;
 	out = out * textureSample(texture, texture_sampler, uv);
 

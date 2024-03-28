@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
-pub(crate) mod curve;
+mod curve;
 mod particles_2d;
-pub(crate) mod values;
+mod values;
 
 #[allow(unused)]
 pub mod prelude {
+    pub use crate::curve::{Curve, LerpThat};
     pub use crate::particles_2d::prelude::*;
+    pub use crate::values::{Random, Rval};
     pub use crate::EnokiPlugin;
 }
 

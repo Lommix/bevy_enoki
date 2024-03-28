@@ -1,6 +1,6 @@
 (
-    spawn_rate: 0.01,
-    spawn_amount:  500,
+    spawn_rate: 0.1,
+    spawn_amount:  5000,
 	emission_shape: Point,
     lifetime: (2.0, 0.5),
     direction: Some(((0, 1), 0.3)),
@@ -12,7 +12,7 @@
     gravity_direction: Some(((0, -1), 0)),
     scale: Some((100., 0)),
     linear_damp: Some((30, 0.8)),
-    angular_damp: Some((100, 0)),
+    angular_damp: Some((1, 0)),
     scale_curve: Some(
         Curve(
             points: [

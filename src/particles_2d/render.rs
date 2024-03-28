@@ -37,7 +37,7 @@ use bytemuck::{Pod, Zeroable};
 use std::hash::Hash;
 
 /// Particle Material Trait
-/// bin custom fragment shader to material
+/// bind custom fragment shader to material
 pub trait Particle2dMaterial: AsBindGroup + Asset + Clone + Sized {
     fn fragment_shader() -> ShaderRef {
         super::PARTICLE_DEFAULT_FRAG.into()
@@ -234,7 +234,9 @@ fn queue_particles<M: Particle2dMaterial>(
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
 
-            let order = z_orders.get(*entity).unwrap();
+            let Ok(order) = z_orders.get(*entity) else {
+                return;
+            };
 
             transparent_phase.add(Transparent2d {
                 sort_key: **order,
@@ -256,16 +258,12 @@ fn queue_particles<M: Particle2dMaterial>(
 pub struct InstanceData {
     transform: [Vec4; 3],
     color: [f32; 4],
-    lifetime: f32,
-    frame: u32,
-    _p1: f32,
-    _p2: f32,
-    // frame: u32,
+    custom: Vec4,
 }
 impl From<&Particle> for InstanceData {
+    #[inline(always)]
     fn from(value: &Particle) -> Self {
         let transpose_model_3x3 = value.transform.compute_affine().matrix3;
-
         Self {
             transform: [
                 transpose_model_3x3
@@ -279,10 +277,12 @@ impl From<&Particle> for InstanceData {
                     .extend(value.transform.translation.z),
             ],
             color: value.color.as_rgba_f32(),
-            frame: value.frame,
-            lifetime: value.lifetime.fraction(),
-            _p1: 0.,
-            _p2: 0.,
+            custom: Vec4::new(
+                value.lifetime.fraction(),
+                value.lifetime.duration().as_secs_f32(),
+                0.,
+                0.,
+            ),
         }
     }
 }
@@ -495,37 +495,12 @@ impl<M: Particle2dMaterial> SpecializedMeshPipeline for Particle2dPipeline<M> {
         });
         offset += VertexFormat::Float32x4.size();
 
-        // lifetime
+        // custom
         attributes.push(VertexAttribute {
-            format: VertexFormat::Float32,
+            format: VertexFormat::Float32x4,
             offset,
             shader_location: 7,
         });
-        offset += VertexFormat::Float32.size();
-
-        // frame
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Uint32,
-            offset,
-            shader_location: 8,
-        });
-        offset += VertexFormat::Float32.size();
-
-        // p1
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32,
-            offset,
-            shader_location: 9,
-        });
-        offset += VertexFormat::Float32.size();
-
-        // p2
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32,
-            offset,
-            shader_location: 10,
-        });
-        offset += VertexFormat::Float32.size();
 
         descriptor.vertex.shader = self.vertex_shader.clone();
         descriptor.vertex.buffers.push(VertexBufferLayout {

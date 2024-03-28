@@ -66,6 +66,8 @@ pub(crate) fn clone_effect(
             let Some(effect) = effects.get(handle) else {
                 return;
             };
+
+            info!("cloning existing effect");
             effect_overwrites.0 = Box::new(effect.clone());
         });
 }
@@ -87,23 +89,25 @@ pub(crate) fn update_spawner(
         &mut ParticleStore,
         &mut ParticleState,
         &mut ParticleController,
-        // &ParticleEffectOwner,
-        &Handle<Particle2dEffect>,
+        &ParticleEffectOwner,
+        // &Handle<Particle2dEffect>,
         &GlobalTransform,
     )>,
-    effects: Res<Assets<Particle2dEffect>>,
+    // effects: Res<Assets<Particle2dEffect>>,
     one_shots: Query<&OneShot>,
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, mut controller, handle, transform)| {
+        |(entity, mut store, mut state, mut controller, effect_owner, transform)| {
             if controller.max_particles <= store.0.len() as u32 {
                 return;
             }
 
-            let Some(effect) = effects.get(handle) else {
-                return;
-            };
+            // let Some(effect) = effects.get(handle) else {
+            //     return;
+            // };
+
+            let effect = &effect_owner.0;
 
             let transform = transform.compute_transform();
 

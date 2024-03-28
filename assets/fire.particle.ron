@@ -1,14 +1,14 @@
 (
     spawn_rate: 0.05,
-    spawn_amount:  100,
-	emission_shape: Circle(200),
-    lifetime: (2.0, 0.1),
-    direction: Some(((0, 1), 0.0)),
-    linear_speed: Some((300, 0.0)),
+    spawn_amount:  20,
+	emission_shape: Circle(120),
+    lifetime: (2.0, 0.5),
+    direction: Some(((0, 1), 0.5)),
+    linear_speed: Some((300,  1)),
     linear_acceleration: Some((0, 0)),
     angular_speed: Some((5, 0.5)),
     angular_acceleration: Some((0, 0)),
-    gravity_speed: Some((100, 1)),
+    gravity_speed: Some((300, 0)),
     gravity_direction: Some(((0, -1), 0)),
     scale: Some((100., 0)),
     linear_damp: Some((20, 0.8)),
@@ -18,14 +18,14 @@
             points: [
                 (50, 0, None),
                 (
-                    200,
+                    300,
                     0.5,
                     Some(BounceOut),
                 ),
                 (
-                    500,
+                    10,
                     1.0,
-                    Some(CubicInOut),
+                    None,
                 ),
             ],
         ),
@@ -45,19 +45,9 @@
                 ),
                 (
                     Rgba(
-                        red: 10.0,
-                        green:10.0,
-                        blue: 1.0,
-                        alpha: 1.0,
-                    ),
-                    0.05,
-                    None,
-                ),
-                (
-                    Rgba(
-                        red: 1.0,
+                        red: 0.0,
                         green:0.0,
-                        blue: 0.0,
+                        blue: 10.0,
                         alpha: 1.0,
                     ),
                     0.2,
@@ -65,9 +55,19 @@
                 ),
                 (
                     Rgba(
-                        red: 0.0,
-                        green: 0.0,
-                        blue: 0.1,
+                        red: 2.0,
+                        green:2.0,
+                        blue: 5.0,
+                        alpha: 1.0,
+                    ),
+                    0.3,
+                    None,
+                ),
+                (
+                    Rgba(
+                        red: 0.1,
+                        green: 0.1,
+                        blue: 0.5,
                         alpha: 0.0,
                     ),
                     1.0,

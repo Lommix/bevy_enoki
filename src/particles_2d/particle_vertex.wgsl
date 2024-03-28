@@ -12,12 +12,8 @@ struct VertexIn {
     @location(3) i_translation: vec4<f32>,
     @location(4) i_rotation: vec4<f32>,
     @location(5) i_scale: vec4<f32>,
-
     @location(6) i_color: vec4<f32>,
-    @location(7) i_lifetime: f32,
-    @location(8) i_frame: u32,
-    //@location(9) i_p_1: f32,
-    //@location(10) i_p_2: f32,
+    @location(7) i_lifetime: vec4<f32>,
 };
 
 @vertex
@@ -32,7 +28,9 @@ fn vertex(vertex: VertexIn) -> VertexOutput {
 
     out.color = vertex.i_color;
 	out.uv = vertex.uv;
-	out.lifetime = vertex.i_lifetime;
+
+	out.lifetime_frac = vertex.i_lifetime.x;
+	out.lifetime_total = vertex.i_lifetime.y;
 
     return out;
 }

@@ -52,8 +52,7 @@ pub(crate) fn on_asset_loaded(
 ) {
     events.read().for_each(|event| {
         let assset_id = match event {
-            AssetEvent::Added { id } => id,
-            AssetEvent::Modified { id } => id,
+            AssetEvent::LoadedWithDependencies { id } => id,
             _ => {
                 return;
             }
@@ -62,8 +61,9 @@ pub(crate) fn on_asset_loaded(
             .iter_mut()
             .filter(|(_, handle)| handle.id() == *assset_id)
             .for_each(|(entity, _)| {
-                info!("to reload");
-                // cmd.get_entity(entity).insert(ReloadEffectTag);
+                if let Some(mut cmd) = cmd.get_entity(entity){
+                    cmd.insert(ReloadEffectTag);
+                }
             });
     })
 }
@@ -82,8 +82,6 @@ pub(crate) fn reload_effect(
             let Some(effect) = effects.get(handle) else {
                 return;
             };
-
-            info!("loading effect");
             owner.0 = Box::new(effect.clone());
             cmd.entity(entity).remove::<ReloadEffectTag>();
         });

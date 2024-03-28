@@ -22,7 +22,7 @@ pub mod prelude {
     pub use super::update::{
         OneShot, ParticleController, ParticleEffectOwner, ParticleState, ParticleStore,
     };
-    pub use super::{ColorParticleMaterial, ParticleSpawnerBundle};
+    pub use super::{ColorParticleMaterial, ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
 
 pub(crate) const PARTICLE_MESH: Handle<Mesh> =
@@ -90,12 +90,15 @@ impl Plugin for Particles2dPlugin {
         app.init_asset_loader::<loader::ParticleEffectLoader>();
 
         app.add_systems(
+            First,
+            loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>()),
+        );
+        app.add_systems(
             Update,
             (
-                loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>()),
-                // loader::reload_effect,
+                loader::reload_effect,
                 update::update_spawner,
-                // update::clone_effect,
+                update::clone_effect,
                 update::remove_finished_spawner,
             ),
         );
