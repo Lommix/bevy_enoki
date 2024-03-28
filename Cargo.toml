@@ -1,0 +1,42 @@
+[package]
+name = "bevy_enoki"
+version = "0.1.0"
+edition = "2021"
+authors = ["Lorenz Mielke"]
+description = "2D Particle system plugin, that works well in wasm"
+keywords = ["bevy", "particles", "shader", "2d", "particle"]
+repository = "https://github.com/Lommix/"
+license = "MIT"
+
+
+[dependencies]
+bevy = { version = "0.13.1", default-features = false, features = [
+  "bevy_core_pipeline",
+  "bevy_asset",
+  "bevy_sprite",
+  "png",
+] }
+serde = { version = "1.0.197", features = ["derive"] }
+bytemuck = "1.15.0"
+interpolation = "0.3.0"
+rand = "0.8.5"
+ron = "0.8.1"
+
+[dev-dependencies]
+bevy = { version = "0.13.1", default-features = false, features = [
+  "bevy_ui",
+  "multi-threaded",
+  "wayland",
+  "default_font",
+  "file_watcher",
+] }
+bevy_egui = "0.26.0"
+
+
+[[example]]
+name = "material"
+path = "examples/material.rs"
+
+[[example]]
+name = "sprites"
+path = "examples/sprites.rs"

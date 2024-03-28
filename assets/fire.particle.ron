@@ -1,0 +1,79 @@
+(
+    spawn_rate: 0.05,
+    spawn_amount:  100,
+	emission_shape: Circle(200),
+    lifetime: (2.0, 0.1),
+    direction: Some(((0, 1), 0.0)),
+    linear_speed: Some((300, 0.0)),
+    linear_acceleration: Some((0, 0)),
+    angular_speed: Some((5, 0.5)),
+    angular_acceleration: Some((0, 0)),
+    gravity_speed: Some((100, 1)),
+    gravity_direction: Some(((0, -1), 0)),
+    scale: Some((100., 0)),
+    linear_damp: Some((20, 0.8)),
+    angular_damp: Some((10, 0)),
+    scale_curve: Some(
+        Curve(
+            points: [
+                (50, 0, None),
+                (
+                    200,
+                    0.5,
+                    Some(BounceOut),
+                ),
+                (
+                    500,
+                    1.0,
+                    Some(CubicInOut),
+                ),
+            ],
+        ),
+    ),
+    color_curve: Some(
+        Curve(
+            points: [
+                (
+                    Rgba(
+                        red: 50.0,
+                        green: 50.0,
+                        blue: 50.0,
+                        alpha: 1.0,
+                    ),
+                    0,
+                    None,
+                ),
+                (
+                    Rgba(
+                        red: 10.0,
+                        green:10.0,
+                        blue: 1.0,
+                        alpha: 1.0,
+                    ),
+                    0.05,
+                    None,
+                ),
+                (
+                    Rgba(
+                        red: 1.0,
+                        green:0.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    ),
+                    0.2,
+                    None,
+                ),
+                (
+                    Rgba(
+                        red: 0.0,
+                        green: 0.0,
+                        blue: 0.1,
+                        alpha: 0.0,
+                    ),
+                    1.0,
+                    None,
+                ),
+            ],
+        ),
+    ),
+)
