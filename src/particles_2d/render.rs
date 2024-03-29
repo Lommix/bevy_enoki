@@ -117,33 +117,22 @@ impl<M: Particle2dMaterial> Default for ExtractedParticleBatches<M> {
 }
 
 fn extract_materials<M: Particle2dMaterial>(
-    mut cmd: Commands,
     mut events: Extract<EventReader<AssetEvent<M>>>,
+    mut materials: ResMut<ExtractedParticleMaterials<M>>,
     assets: Extract<Res<Assets<M>>>,
 ) {
-    let mut changed_assets = HashSet::default();
     for event in events.read() {
         match event {
             AssetEvent::Added { id } | AssetEvent::Modified { id } => {
-                changed_assets.insert(*id);
+                if let Some(asset) = assets.get(*id) {
+                    materials.materials.push((*id, asset.clone()));
+                }
             }
             AssetEvent::Removed { id } => {
-                changed_assets.remove(id);
+                materials.materials.retain(|(i, _)| i != id);
             }
-            AssetEvent::Unused { .. } => {}
-            AssetEvent::LoadedWithDependencies { .. } => {}
+            _ => (),
         }
-
-        let mut extracted_assets = Vec::new();
-        for id in changed_assets.drain() {
-            if let Some(asset) = assets.get(id) {
-                extracted_assets.push((id, asset.clone()));
-            }
-        }
-
-        cmd.insert_resource(ExtractedParticleMaterials {
-            materials: extracted_assets,
-        });
     }
 }
 
@@ -351,6 +340,7 @@ fn prepare_particle_materials<M: Particle2dMaterial>(
                 );
             }
             Err(_) => {
+                warn!("failed prep retry");
                 prepare_next_frame.push((asset_id, material));
             }
         }
@@ -374,6 +364,7 @@ fn prepare_particle_materials<M: Particle2dMaterial>(
                 );
             }
             Err(_) => {
+                warn!("failed prep");
                 prepare_next_frame.push((asset_id, material));
             }
         }

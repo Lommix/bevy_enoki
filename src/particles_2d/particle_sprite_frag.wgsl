@@ -2,23 +2,28 @@
 
 @group(2) @binding(0) var texture: texture_2d<f32>;
 @group(2) @binding(1) var texture_sampler: sampler;
-@group(2) @binding(2) var<uniform> uni: Uniform;
+@group(2) @binding(2) var<uniform> frame_data: vec4<u32>;
 
-
-struct Uniform{
-	frames : u32,
-	_padding : vec3<f32>,
-}
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 	var out = in.color;
-	var uv = in.uv;
-	let max_frame = f32(uni.frames + 1);
-	let frame_step = 1. / max_frame;
-	let current_frame = u32(max_frame * (in.lifetime_frac));
-	uv.x = uv.x / max_frame + f32(current_frame) * frame_step;
-	out = out * textureSample(texture, texture_sampler, uv);
 
-    return out;
+	let max_hframe = f32(frame_data.x);
+	let max_vframe = f32(frame_data.y);
+
+    let total_frames = max_hframe * max_vframe;
+    let current_frame = floor(in.lifetime_frac * total_frames);
+
+    let hframe = current_frame % max_hframe;
+    let vframe = floor(current_frame / max_hframe);
+
+    let frame_width = 1.0 / max_hframe;
+    let frame_height = 1.0 / max_vframe;
+
+    let u_offset = hframe * frame_width;
+    let v_offset = (max_vframe - vframe - 1.0) * frame_height;
+
+    let uv = in.uv * vec2<f32>(frame_width, frame_height) + vec2<f32>(u_offset, v_offset);
+	return out * textureSample(texture, texture_sampler, uv);
 }

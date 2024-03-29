@@ -1,13 +1,12 @@
+use self::prelude::{
+    Particle2dEffect, Particle2dMaterial, ParticleController, ParticleEffectOwner, ParticleState,
+    ParticleStore,
+};
+use crate::particles_2d::sprite::ColorParticle2dMaterial;
 use bevy::{
-    asset::load_internal_asset,
-    prelude::*,
-    render::{batching::NoAutomaticBatching, render_resource::AsBindGroup},
+    asset::load_internal_asset, prelude::*, render::batching::NoAutomaticBatching,
     sprite::Mesh2dHandle,
 };
-
-use crate::particles_2d::sprite::SpriteParticleMaterial;
-
-use self::prelude::*;
 
 mod loader;
 mod render;
@@ -18,25 +17,25 @@ mod update;
 pub mod prelude {
     pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
     pub use super::render::{Particle2dMaterial, Particle2dMaterialPlugin};
-    pub use super::sprite::SpriteParticleMaterial;
+    pub use super::sprite::ColorParticle2dMaterial;
     pub use super::update::{
         OneShot, ParticleController, ParticleEffectOwner, ParticleState, ParticleStore,
     };
-    pub use super::{ColorParticleMaterial, ParticleSpawnerBundle, DEFAULT_MATERIAL};
+    pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
 
 pub(crate) const PARTICLE_MESH: Handle<Mesh> =
     Handle::weak_from_u128(31145795777456212157789641244521641567);
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
-    Handle::weak_from_u128(97641680653231235698756524356666664231);
+    Handle::weak_from_u128(97641680653231235698756524351080664231);
 pub(crate) const PARTICLE_VERTEX: Handle<Shader> =
-    Handle::weak_from_u128(47641680653221245698756524356666564219);
+    Handle::weak_from_u128(47641680653221245698756524350619564219);
 pub(crate) const PARTICLE_DEFAULT_FRAG: Handle<Shader> =
     Handle::weak_from_u128(27641685611347896254665674658656433339);
 pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
-    Handle::weak_from_u128(12323345476666666666641232313030656999);
-pub const DEFAULT_MATERIAL: Handle<ColorParticleMaterial> =
-    Handle::weak_from_u128(12323345476653413666641232313030656999);
+    Handle::weak_from_u128(52323345476969163624641232313030656999);
+pub const DEFAULT_MATERIAL: Handle<ColorParticle2dMaterial> =
+    Handle::weak_from_u128(96423345474653413361641232813030656919);
 
 pub struct Particles2dPlugin;
 impl Plugin for Particles2dPlugin {
@@ -69,17 +68,16 @@ impl Plugin for Particles2dPlugin {
             Shader::from_wgsl
         );
 
+        app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
+
         app.register_type::<update::ParticleStore>();
         app.register_type::<update::ParticleState>();
         app.register_type::<update::ParticleController>();
         app.register_type::<update::Particle>();
 
-        app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticleMaterial>::default());
-        app.add_plugins(render::Particle2dMaterialPlugin::<SpriteParticleMaterial>::default());
-
         app.world
-            .resource_mut::<Assets<ColorParticleMaterial>>()
-            .insert(DEFAULT_MATERIAL, ColorParticleMaterial::default());
+            .resource_mut::<Assets<ColorParticle2dMaterial>>()
+            .insert(DEFAULT_MATERIAL, ColorParticle2dMaterial::default());
 
         app.world
             .get_resource_mut::<Assets<Mesh>>()
@@ -93,6 +91,7 @@ impl Plugin for Particles2dPlugin {
             First,
             loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>()),
         );
+
         app.add_systems(
             Update,
             (
@@ -104,13 +103,6 @@ impl Plugin for Particles2dPlugin {
         );
     }
 }
-
-#[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
-pub struct ColorParticleMaterial {
-    pub color: Vec4,
-}
-
-impl Particle2dMaterial for ColorParticleMaterial {}
 
 #[derive(Bundle)]
 pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
@@ -128,9 +120,6 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     pub global_transform: GlobalTransform,
     pub no_batch: NoAutomaticBatching,
 }
-
-// pub type SpriteParticleBundle = ParticleSpawnerBundle<SpriteParticleMaterial>;
-// pub type DefaultParticleBundle = ParticleSpawnerBundle<ColorParticleMaterial>;
 
 impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
     fn default() -> Self {

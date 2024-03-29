@@ -1,6 +1,6 @@
-use std::time::Duration;
 use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
+use std::time::Duration;
 
 fn main() {
     App::new()
@@ -24,11 +24,11 @@ pub struct MoveTimer(Timer);
 pub struct Pcindex(f32);
 
 #[derive(Deref, Resource, DerefMut)]
-pub struct ParticleMaterialAsset(Handle<SpriteParticleMaterial>);
+pub struct ParticleMaterialAsset(Handle<ColorParticle2dMaterial>);
 
 fn setup(
     mut cmd: Commands,
-    mut materials: ResMut<Assets<SpriteParticleMaterial>>,
+    mut materials: ResMut<Assets<ColorParticle2dMaterial>>,
     server: Res<AssetServer>,
 ) {
     cmd.spawn((
@@ -53,9 +53,9 @@ fn setup(
     ));
 
     cmd.spawn((TextBundle::default(), FpsText));
-    cmd.insert_resource(ParticleMaterialAsset(
-        materials.add(SpriteParticleMaterial::new(server.load("particle.png"), 5)),
-    ));
+    cmd.insert_resource(ParticleMaterialAsset(materials.add(
+        ColorParticle2dMaterial::new(server.load("particle.png"), 6, 1),
+    )));
 }
 
 fn spawn_spawn(
@@ -63,7 +63,7 @@ fn spawn_spawn(
     mut query: Query<(&mut MoveTimer, &mut Pcindex)>,
     time: Res<Time>,
     server: Res<AssetServer>,
-    particle_material: Res<ParticleMaterialAsset>,
+    mut mats : ResMut<Assets<ColorParticle2dMaterial>>
 ) {
     let Ok((mut timer, mut index)) = query.get_single_mut() else {
         return;
@@ -74,15 +74,17 @@ fn spawn_spawn(
         return;
     }
 
-    for _ in 0..1 {
-        // let x = (rand::random::<f32>() - 0.5) * 500.;
-        // let y = (rand::random::<f32>() - 0.5) * 500.;
+    for _ in 0..3{
+        let x = (rand::random::<f32>() - 0.5) * 500.;
+        let y = (rand::random::<f32>() - 0.5) * 500.;
 
         cmd.spawn((
             ParticleSpawnerBundle {
-                transform: Transform::from_xyz(0., 0., index.0),
+                transform: Transform::from_xyz(x, y, index.0),
                 effect: server.load("test.particle.ron"),
-                material: particle_material.clone(),
+                // material: mats.add(ColorParticle2dMaterial::default()),
+                material: DEFAULT_MATERIAL,
+                // material: particle_material.clone(),
                 ..default()
             },
             OneShot,

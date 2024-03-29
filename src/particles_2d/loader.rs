@@ -61,7 +61,7 @@ pub(crate) fn on_asset_loaded(
             .iter_mut()
             .filter(|(_, handle)| handle.id() == *assset_id)
             .for_each(|(entity, _)| {
-                if let Some(mut cmd) = cmd.get_entity(entity){
+                if let Some(mut cmd) = cmd.get_entity(entity) {
                     cmd.insert(ReloadEffectTag);
                 }
             });
@@ -82,7 +82,7 @@ pub(crate) fn reload_effect(
             let Some(effect) = effects.get(handle) else {
                 return;
             };
-            owner.0 = Box::new(effect.clone());
+            owner.0 = Some(Box::new(effect.clone()));
             cmd.entity(entity).remove::<ReloadEffectTag>();
         });
 }

@@ -1,4 +1,4 @@
-use super::{EmissionShape, Particle2dEffect};
+use super::{prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
 use bevy::prelude::*;
 use std::time::Duration;
@@ -23,7 +23,7 @@ pub struct ParticleController {
 }
 
 #[derive(Component, Deref, DerefMut, Default)]
-pub struct ParticleEffectOwner(pub Box<Particle2dEffect>);
+pub struct ParticleEffectOwner(pub Option<Box<Particle2dEffect>>);
 
 impl Default for ParticleController {
     fn default() -> Self {
@@ -50,7 +50,7 @@ pub struct Particle {
     pub(crate) angular_acceleration: f32,
     pub(crate) angular_damp: f32,
     pub(crate) gravity_speed: f32,
-    pub(crate) gravity_direction: Vec2,
+    pub(crate) gravity_direction: Vec3,
 }
 
 pub(crate) fn clone_effect(
@@ -67,8 +67,7 @@ pub(crate) fn clone_effect(
                 return;
             };
 
-            info!("cloning existing effect");
-            effect_overwrites.0 = Box::new(effect.clone());
+            effect_overwrites.0 = Some(Box::new(effect.clone()));
         });
 }
 
@@ -89,25 +88,26 @@ pub(crate) fn update_spawner(
         &mut ParticleStore,
         &mut ParticleState,
         &mut ParticleController,
+        &ViewVisibility,
         &ParticleEffectOwner,
-        // &Handle<Particle2dEffect>,
         &GlobalTransform,
     )>,
-    // effects: Res<Assets<Particle2dEffect>>,
     one_shots: Query<&OneShot>,
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, mut controller, effect_owner, transform)| {
+        |(entity, mut store, mut state, mut controller, visibility, effect_owner, transform)| {
+            // if visibility.get() {
+            //     return;
+            // }
+
             if controller.max_particles <= store.0.len() as u32 {
                 return;
             }
 
-            // let Some(effect) = effects.get(handle) else {
-            //     return;
-            // };
-
-            let effect = &effect_owner.0;
+            let Some(effect) = &effect_owner.0 else {
+                return;
+            };
 
             let transform = transform.compute_transform();
 
@@ -123,7 +123,7 @@ pub(crate) fn update_spawner(
                     controller.active = false;
                 }
 
-                let finished_burst = controller
+                if controller
                     .burst
                     .as_mut()
                     .map(|counter| match counter.checked_sub(effect.spawn_amount) {
@@ -133,14 +133,12 @@ pub(crate) fn update_spawner(
                         }
                         None => true,
                     })
-                    .unwrap_or_default();
-
-                if finished_burst {
+                    .unwrap_or_default()
+                {
                     controller.active = false;
                 }
             }
 
-            // state.set_duration(Duration::from_secs_f32(effect.spawn_rate));
             store.0.retain_mut(|particle| {
                 update_particle(particle, &effect, time.delta_seconds());
                 particle.lifetime.tick(time.delta());
@@ -186,7 +184,8 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
         .gravity_direction
         .as_ref()
         .map(|g| g.rand())
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .extend(0.);
 
     let gravity_speed = effect
         .gravity_speed
@@ -254,12 +253,6 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
     *rot_velo = *rot_velo - progess * particle.angular_damp * *rot_velo * delta
         + progess * particle.angular_acceleration * *rot_velo * delta;
 
-    // particle.velocity.0 = particle.velocity.0
-    //     - particle.lifetime.fraction() * particle.linear_damp * particle.velocity.0 * delta;
-    //
-    // particle.velocity.1 = particle.velocity.1
-    //     - particle.lifetime.fraction() * particle.angular_damp * particle.velocity.1 * delta;
-
     if let Some(scale_curve) = effect.scale_curve.as_ref() {
         particle.transform.scale = Vec3::splat(scale_curve.lerp(progess));
     }
@@ -268,11 +261,8 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
         particle.color = color_curve.lerp(progess);
     }
 
-    // particle.velocity.0 += particle.velocity.0 * particle.linear_acceleration * delta;
-    // particle.velocity.1 += particle.velocity.1 * particle.angular_acceleration * delta;
-
     let gravity = particle.gravity_direction * particle.gravity_speed * delta;
 
-    particle.transform.translation += *lin_velo * delta + gravity.extend(0.);
+    particle.transform.translation += *lin_velo * delta + gravity;
     particle.transform.rotate_local_z(*rot_velo * delta);
 }
