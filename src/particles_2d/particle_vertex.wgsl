@@ -5,32 +5,35 @@
 
 struct VertexIn {
     @builtin(vertex_index) index: u32,
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-
-    @location(3) i_translation: vec4<f32>,
-    @location(4) i_rotation: vec4<f32>,
-    @location(5) i_scale: vec4<f32>,
-    @location(6) i_color: vec4<f32>,
-    @location(7) i_lifetime: vec4<f32>,
+    @location(0) i_translation: vec4<f32>,
+    @location(1) i_rotation: vec4<f32>,
+    @location(2) i_scale: vec4<f32>,
+    @location(3) i_color: vec4<f32>,
+    @location(4) i_lifetime: vec4<f32>,
 };
 
 @vertex
-fn vertex(vertex: VertexIn) -> VertexOutput {
+fn vertex(in: VertexIn) -> VertexOutput {
     var out: VertexOutput;
 
+
+    let vertex_position = vec3<f32>(
+        f32(in.index & 0x1u),
+        f32((in.index & 0x2u) >> 1u),
+        0.0
+    );
+
     out.clip_position = view.view_proj * affine_to_square(mat3x4<f32>(
-        vertex.i_translation,
-        vertex.i_rotation,
-        vertex.i_scale,
-    )) * vec4<f32>(vertex.position, 1.0);
+        in.i_translation,
+        in.i_rotation,
+        in.i_scale,
+    )) * vec4<f32>(vertex_position, 1.0);
 
-    out.color = vertex.i_color;
-	out.uv = vertex.uv;
+    out.color = in.i_color;
+	out.uv = vertex_position.xy;
 
-	out.lifetime_frac = vertex.i_lifetime.x;
-	out.lifetime_total = vertex.i_lifetime.y;
+	out.lifetime_frac = in.i_lifetime.x;
+	out.lifetime_total = in.i_lifetime.y;
 
     return out;
 }

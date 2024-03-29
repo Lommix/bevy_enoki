@@ -3,10 +3,7 @@ use self::prelude::{
     ParticleStore,
 };
 use crate::particles_2d::sprite::ColorParticle2dMaterial;
-use bevy::{
-    asset::load_internal_asset, prelude::*, render::batching::NoAutomaticBatching,
-    sprite::Mesh2dHandle,
-};
+use bevy::{asset::load_internal_asset, prelude::*};
 
 mod loader;
 mod render;
@@ -24,8 +21,6 @@ pub mod prelude {
     pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
 
-pub(crate) const PARTICLE_MESH: Handle<Mesh> =
-    Handle::weak_from_u128(31145795777456212157789641244521641567);
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
     Handle::weak_from_u128(97641680653231235698756524351080664231);
 pub(crate) const PARTICLE_VERTEX: Handle<Shader> =
@@ -68,6 +63,7 @@ impl Plugin for Particles2dPlugin {
             Shader::from_wgsl
         );
 
+        app.add_plugins(render::ParticleRenderPlugin);
         app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
 
         app.register_type::<update::ParticleStore>();
@@ -78,11 +74,6 @@ impl Plugin for Particles2dPlugin {
         app.world
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
             .insert(DEFAULT_MATERIAL, ColorParticle2dMaterial::default());
-
-        app.world
-            .get_resource_mut::<Assets<Mesh>>()
-            .unwrap()
-            .insert(PARTICLE_MESH, Rectangle::new(1., 1.).into());
 
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
@@ -112,13 +103,11 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     pub overwrite: ParticleEffectOwner,
     pub particle_store: ParticleStore,
     pub material: Handle<M>,
-    pub mesh: Mesh2dHandle,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub no_batch: NoAutomaticBatching,
 }
 
 impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
@@ -129,13 +118,11 @@ impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
             effect: Handle::default(),
             overwrite: ParticleEffectOwner::default(),
             particle_store: ParticleStore::default(),
-            mesh: Mesh2dHandle(PARTICLE_MESH),
             visibility: Visibility::default(),
             inherited_visibility: InheritedVisibility::default(),
             transform: Transform::default(),
             global_transform: GlobalTransform::default(),
             view_visibility: ViewVisibility::default(),
-            no_batch: NoAutomaticBatching,
             material: Default::default(),
         }
     }

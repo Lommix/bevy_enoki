@@ -10,21 +10,24 @@ use bevy::{
     },
     prelude::*,
     render::{
-        mesh::{GpuBufferInfo, MeshVertexBufferLayout},
+        mesh::{GpuBufferInfo, MeshVertexBufferLayout, PrimitiveTopology},
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
             RenderPhase, SetItemPipeline, TrackedRenderPass,
         },
         render_resource::{
-            AsBindGroup, BindGroup, BindGroupLayout, Buffer, BufferInitDescriptor, BufferUsages,
-            OwnedBindingResource, PipelineCache, RenderPipelineDescriptor, ShaderRef,
-            SpecializedMeshPipeline, SpecializedMeshPipelineError, SpecializedMeshPipelines,
-            VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode,
+            AsBindGroup, BindGroup, BindGroupLayout, BlendState, Buffer, BufferInitDescriptor,
+            BufferSlice, BufferUsages, BufferVec, ColorTargetState, ColorWrites, FrontFace,
+            IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode, PrimitiveState,
+            RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipeline,
+            SpecializedMeshPipelineError, SpecializedMeshPipelines, SpecializedRenderPipeline,
+            SpecializedRenderPipelines, TextureFormat, VertexAttribute, VertexBufferLayout,
+            VertexFormat, VertexStepMode,
         },
-        renderer::RenderDevice,
-        texture::FallbackImage,
-        view::{ExtractedView, VisibleEntities},
+        renderer::{RenderDevice, RenderQueue},
+        texture::{BevyDefault, FallbackImage},
+        view::{ExtractedView, ViewTarget, VisibleEntities},
         Extract, Render, RenderApp, RenderSet,
     },
     sprite::{
@@ -61,7 +64,7 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
         app.init_asset::<M>();
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent2d, DrawParticle2d<M>>()
-            .init_resource::<SpecializedMeshPipelines<Particle2dPipeline<M>>>()
+            .init_resource::<SpecializedRenderPipelines<Particle2dPipeline<M>>>()
             .init_resource::<ExtractedParticleBatches<M>>()
             .init_resource::<ExtractedParticleMaterials<M>>()
             .init_resource::<PreparedParticleMaterials<M>>()
@@ -82,11 +85,40 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
-
         render_app.init_resource::<Particle2dPipeline<M>>();
     }
 }
 
+pub(crate) struct ParticleRenderPlugin;
+impl Plugin for ParticleRenderPlugin {
+    fn build(&self, _app: &mut App) {}
+    fn finish(&self, app: &mut App) {
+        let render_app = app.sub_app_mut(RenderApp);
+
+        let mut buffer = BufferVec::<u32>::new(BufferUsages::INDEX);
+
+        buffer.push(2);
+        buffer.push(0);
+        buffer.push(1);
+        buffer.push(1);
+        buffer.push(3);
+        buffer.push(2);
+
+        buffer.write_buffer(
+            render_app.world.resource::<RenderDevice>(),
+            render_app.world.resource::<RenderQueue>(),
+        );
+
+        render_app.insert_resource(ParticleMeta {
+            index_buffer: buffer,
+        });
+    }
+}
+
+#[derive(Resource)]
+pub struct ParticleMeta {
+    index_buffer: BufferVec<u32>,
+}
 // ----------------------------------------------
 // extract
 #[derive(Resource)]
@@ -180,10 +212,8 @@ fn queue_particles<M: Particle2dMaterial>(
     transparent_2d_draw_functions: Res<DrawFunctions<Transparent2d>>,
     custom_pipeline: Res<Particle2dPipeline<M>>,
     msaa: Res<Msaa>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<Particle2dPipeline<M>>>,
+    mut pipelines: ResMut<SpecializedRenderPipelines<Particle2dPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<Mesh>>,
-    render_mesh_instances: Res<RenderMesh2dInstances>,
     extract_particles: Res<ExtractedParticleBatches<M>>,
     z_orders: Query<&ZOrder>,
 
@@ -206,22 +236,12 @@ fn queue_particles<M: Particle2dMaterial>(
                 continue;
             }
 
-            let Some(mesh_instance) = render_mesh_instances.get(entity) else {
-                continue;
-            };
-
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-
-            let mesh_key =
-                view_key | Mesh2dPipelineKey::from_primitive_topology(mesh.primitive_topology);
+            let mesh_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples())
+                | Mesh2dPipelineKey::from_hdr(view.hdr);
 
             let key = Particle2dPipelineKey { mesh_key };
 
-            let pipeline = pipelines
-                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
-                .unwrap();
+            let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
             let Ok(order) = z_orders.get(*entity) else {
                 return;
@@ -439,69 +459,108 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
     }
 }
 
-impl<M: Particle2dMaterial> SpecializedMeshPipeline for Particle2dPipeline<M> {
+impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> {
     type Key = Particle2dPipelineKey;
 
-    fn specialize(
-        &self,
-        key: Self::Key,
-        layout: &MeshVertexBufferLayout,
-    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
-        let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
+    fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
+        let layout = vec![
+            self.mesh_pipeline.view_layout.clone(),
+            self.uniform_layout.clone(),
+        ];
 
-        descriptor.layout.push(self.uniform_layout.clone());
+        let format = if key.mesh_key.contains(Mesh2dPipelineKey::HDR) {
+            ViewTarget::TEXTURE_FORMAT_HDR
+        } else {
+            TextureFormat::bevy_default()
+        };
 
-        let mut attributes = Vec::new();
-        let mut offset = 0;
-
-        // translation
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32x4,
-            offset,
-            shader_location: 3,
-        });
-        offset += VertexFormat::Float32x4.size();
-
-        // rotation
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32x4,
-            offset,
-            shader_location: 4,
-        });
-        offset += VertexFormat::Float32x4.size();
-
-        // scale
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32x4,
-            offset,
-            shader_location: 5,
-        });
-        offset += VertexFormat::Float32x4.size();
-
-        // color
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32x4,
-            offset,
-            shader_location: 6,
-        });
-        offset += VertexFormat::Float32x4.size();
-
-        // custom
-        attributes.push(VertexAttribute {
-            format: VertexFormat::Float32x4,
-            offset,
-            shader_location: 7,
-        });
-
-        descriptor.vertex.shader = self.vertex_shader.clone();
-        descriptor.vertex.buffers.push(VertexBufferLayout {
-            array_stride: std::mem::size_of::<InstanceData>() as u64,
-            step_mode: VertexStepMode::Instance,
-            attributes,
-        });
-        descriptor.fragment.as_mut().unwrap().shader = self.fragment_shader.clone();
-        Ok(descriptor)
+        RenderPipelineDescriptor {
+            vertex: bevy::render::render_resource::VertexState {
+                shader: self.vertex_shader.clone(),
+                shader_defs: vec![],
+                entry_point: "vertex".into(),
+                buffers: vec![VertexBufferLayout {
+                    array_stride: VertexFormat::Float32x3.size(),
+                    step_mode: VertexStepMode::Instance,
+                    attributes: create_vertex_attributes(),
+                }],
+            },
+            fragment: Some(bevy::render::render_resource::FragmentState {
+                shader: self.fragment_shader.clone(),
+                shader_defs: vec![],
+                entry_point: "fragment".into(),
+                targets: vec![Some(ColorTargetState {
+                    format,
+                    blend: Some(BlendState::ALPHA_BLENDING),
+                    write_mask: ColorWrites::ALL,
+                })],
+            }),
+            label: Some("particle 2d pipeline".into()),
+            layout,
+            push_constant_ranges: vec![],
+            primitive: PrimitiveState {
+                front_face: FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: PolygonMode::Fill,
+                conservative: false,
+                topology: PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+            },
+            depth_stencil: None,
+            multisample: bevy::render::render_resource::MultisampleState {
+                count: key.mesh_key.msaa_samples(),
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+        }
     }
+}
+
+fn create_vertex_attributes() -> Vec<VertexAttribute> {
+    let mut attributes = Vec::new();
+    let mut offset = 0;
+
+    // translation
+    attributes.push(VertexAttribute {
+        format: VertexFormat::Float32x4,
+        offset,
+        shader_location: 0,
+    });
+    offset += VertexFormat::Float32x4.size();
+
+    // rotation
+    attributes.push(VertexAttribute {
+        format: VertexFormat::Float32x4,
+        offset,
+        shader_location: 1,
+    });
+    offset += VertexFormat::Float32x4.size();
+
+    // scale
+    attributes.push(VertexAttribute {
+        format: VertexFormat::Float32x4,
+        offset,
+        shader_location: 2,
+    });
+    offset += VertexFormat::Float32x4.size();
+
+    // color
+    attributes.push(VertexAttribute {
+        format: VertexFormat::Float32x4,
+        offset,
+        shader_location: 3,
+    });
+    offset += VertexFormat::Float32x4.size();
+
+    // custom
+    attributes.push(VertexAttribute {
+        format: VertexFormat::Float32x4,
+        offset,
+        shader_location: 4,
+    });
+
+    attributes
 }
 
 // ----------------------------------------------
@@ -510,8 +569,7 @@ impl<M: Particle2dMaterial> SpecializedMeshPipeline for Particle2dPipeline<M> {
 type DrawParticle2d<M> = (
     SetItemPipeline,
     SetMesh2dViewBindGroup<0>,
-    SetMesh2dBindGroup<1>,
-    SetParticle2dBindGroup<2, M>,
+    SetParticle2dBindGroup<1, M>,
     DrawParticleInstanced,
 );
 
@@ -555,46 +613,31 @@ impl<const I: usize, M: Particle2dMaterial, P: PhaseItem> RenderCommand<P>
 
 struct DrawParticleInstanced;
 impl<P: PhaseItem> RenderCommand<P> for DrawParticleInstanced {
-    type Param = (SRes<RenderAssets<Mesh>>, SRes<RenderMesh2dInstances>);
+    type Param = SRes<ParticleMeta>;
     type ViewQuery = ();
     type ItemQuery = Read<InstanceBuffer>;
 
     #[inline]
     fn render<'w>(
-        item: &P,
+        _item: &P,
         _view: (),
         instance_buffer: Option<&'w InstanceBuffer>,
-        (meshes, render_mesh_instances): SystemParamItem<'w, '_, Self::Param>,
+        meta: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(instance_buffer) = instance_buffer else {
             return RenderCommandResult::Failure;
         };
 
-        let Some(mesh_instance) = render_mesh_instances.get(&item.entity()) else {
-            return RenderCommandResult::Failure;
-        };
+        let particle_meta = meta.into_inner();
+        pass.set_index_buffer(
+            particle_meta.index_buffer.buffer().unwrap().slice(..),
+            0,
+            IndexFormat::Uint32,
+        );
+        pass.set_vertex_buffer(0, instance_buffer.buffer.slice(..));
+        pass.draw_indexed(0..6, 0, 0..instance_buffer.length as u32);
 
-        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
-            return RenderCommandResult::Failure;
-        };
-
-        pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
-        pass.set_vertex_buffer(1, instance_buffer.buffer.slice(..));
-
-        match &gpu_mesh.buffer_info {
-            GpuBufferInfo::Indexed {
-                buffer,
-                index_format,
-                count,
-            } => {
-                pass.set_index_buffer(buffer.slice(..), 0, *index_format);
-                pass.draw_indexed(0..*count, 0, 0..instance_buffer.length as u32);
-            }
-            GpuBufferInfo::NonIndexed => {
-                pass.draw(0..gpu_mesh.vertex_count, 0..instance_buffer.length as u32);
-            }
-        }
         RenderCommandResult::Success
     }
 }

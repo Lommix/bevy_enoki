@@ -1,8 +1,8 @@
 #import bevy_enoki::particle_vertex_out::{ VertexOutput }
 
-@group(2) @binding(0) var texture: texture_2d<f32>;
-@group(2) @binding(1) var texture_sampler: sampler;
-@group(2) @binding(2) var<uniform> frame_data: vec4<u32>;
+@group(1) @binding(0) var texture: texture_2d<f32>;
+@group(1) @binding(1) var texture_sampler: sampler;
+@group(1) @binding(2) var<uniform> frame_data: vec4<u32>;
 
 
 @fragment

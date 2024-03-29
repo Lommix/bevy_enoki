@@ -10,7 +10,7 @@ fn main() {
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(EnokiPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (show_fps, spawn_spawn))
+        .add_systems(Update, (show_fps, spawn_particles))
         .run()
 }
 
@@ -58,12 +58,11 @@ fn setup(
     )));
 }
 
-fn spawn_spawn(
+fn spawn_particles(
     mut cmd: Commands,
     mut query: Query<(&mut MoveTimer, &mut Pcindex)>,
     time: Res<Time>,
     server: Res<AssetServer>,
-    mut mats : ResMut<Assets<ColorParticle2dMaterial>>
 ) {
     let Ok((mut timer, mut index)) = query.get_single_mut() else {
         return;
@@ -74,7 +73,7 @@ fn spawn_spawn(
         return;
     }
 
-    for _ in 0..3{
+    for _ in 0..3 {
         let x = (rand::random::<f32>() - 0.5) * 500.;
         let y = (rand::random::<f32>() - 0.5) * 500.;
 
@@ -82,9 +81,7 @@ fn spawn_spawn(
             ParticleSpawnerBundle {
                 transform: Transform::from_xyz(x, y, index.0),
                 effect: server.load("test.particle.ron"),
-                // material: mats.add(ColorParticle2dMaterial::default()),
                 material: DEFAULT_MATERIAL,
-                // material: particle_material.clone(),
                 ..default()
             },
             OneShot,
