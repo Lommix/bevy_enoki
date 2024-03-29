@@ -1,7 +1,7 @@
 #import bevy_enoki::particle_vertex_out::{ VertexOutput }
 
-@group(2) @binding(0) var texture: texture_2d<f32>;
-@group(2) @binding(1) var texture_sampler: sampler;
+@group(1) @binding(0) var texture: texture_2d<f32>;
+@group(1) @binding(1) var texture_sampler: sampler;
 
 
 @fragment
@@ -27,12 +27,5 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 	* smoothstep(energy,energy + 0.2,.3)
 	* fade_out;
 
-
-
     return out;
-}
-
-
-fn noise(uv: vec2<f32>) -> f32 {
-    return fract(sin(dot(uv, vec2<f32>(12.9898, 58.233))) * 43758.5453);
 }

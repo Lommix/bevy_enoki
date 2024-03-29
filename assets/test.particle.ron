@@ -1,6 +1,6 @@
 (
     spawn_rate: 0.5,
-    spawn_amount:  1,
+    spawn_amount:  1000,
 	emission_shape: Point,
     lifetime: (3.0, 0.5),
     direction: Some(((0, 1), 0.3)),

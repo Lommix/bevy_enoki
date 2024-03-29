@@ -42,7 +42,7 @@ fn setup(
             ..default()
         },
         BloomSettings {
-            intensity: 0.3,
+            intensity: 0.0,
             ..default()
         },
     ));
@@ -62,6 +62,7 @@ fn spawn_particles(
     mut cmd: Commands,
     mut query: Query<(&mut MoveTimer, &mut Pcindex)>,
     time: Res<Time>,
+    material : Res<ParticleMaterialAsset>,
     server: Res<AssetServer>,
 ) {
     let Ok((mut timer, mut index)) = query.get_single_mut() else {

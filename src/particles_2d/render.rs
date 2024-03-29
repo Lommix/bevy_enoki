@@ -17,17 +17,21 @@ use bevy::{
             RenderPhase, SetItemPipeline, TrackedRenderPass,
         },
         render_resource::{
-            AsBindGroup, BindGroup, BindGroupLayout, BlendState, Buffer, BufferInitDescriptor,
+            binding_types::uniform_buffer, AsBindGroup, BindGroup, BindGroupEntries,
+            BindGroupLayout, BindGroupLayoutEntries, BlendState, Buffer, BufferInitDescriptor,
             BufferSlice, BufferUsages, BufferVec, ColorTargetState, ColorWrites, FrontFace,
             IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode, PrimitiveState,
-            RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipeline,
+            RenderPipelineDescriptor, ShaderRef, ShaderStages, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, SpecializedMeshPipelines, SpecializedRenderPipeline,
             SpecializedRenderPipelines, TextureFormat, VertexAttribute, VertexBufferLayout,
             VertexFormat, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, FallbackImage},
-        view::{ExtractedView, ViewTarget, VisibleEntities},
+        view::{
+            ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
+            VisibleEntities,
+        },
         Extract, Render, RenderApp, RenderSet,
     },
     sprite::{
@@ -69,6 +73,7 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
             .init_resource::<ExtractedParticleMaterials<M>>()
             .init_resource::<PreparedParticleMaterials<M>>()
             .init_resource::<RenderParticleMaterials<M>>()
+            .init_resource::<ParticleMeta<M>>()
             .add_systems(
                 ExtractSchedule,
                 (extract_particles::<M>, extract_materials::<M>),
@@ -76,7 +81,7 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
             .add_systems(
                 Render,
                 (
-                    queue_particles::<M>.in_set(RenderSet::QueueMeshes),
+                    queue_particles::<M>.in_set(RenderSet::Queue),
                     prepare_particle_materials::<M>.in_set(RenderSet::PrepareBindGroups),
                     prepare_particles_instance_buffers::<M>.in_set(RenderSet::PrepareResources),
                 ),
@@ -86,39 +91,41 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.init_resource::<Particle2dPipeline<M>>();
-    }
-}
-
-pub(crate) struct ParticleRenderPlugin;
-impl Plugin for ParticleRenderPlugin {
-    fn build(&self, _app: &mut App) {}
-    fn finish(&self, app: &mut App) {
-        let render_app = app.sub_app_mut(RenderApp);
-
+        let render_device = render_app.world.resource::<RenderDevice>();
         let mut buffer = BufferVec::<u32>::new(BufferUsages::INDEX);
-
+        // // quad order
         buffer.push(2);
         buffer.push(0);
         buffer.push(1);
         buffer.push(1);
         buffer.push(3);
         buffer.push(2);
-
-        buffer.write_buffer(
-            render_app.world.resource::<RenderDevice>(),
-            render_app.world.resource::<RenderQueue>(),
-        );
-
-        render_app.insert_resource(ParticleMeta {
+        buffer.write_buffer(render_device, render_app.world.resource::<RenderQueue>());
+        render_app.insert_resource(ParticleMeta::<M> {
             index_buffer: buffer,
+            view_bind_group: None,
+            _m: Default::default(),
         });
     }
 }
 
 #[derive(Resource)]
-pub struct ParticleMeta {
+pub struct ParticleMeta<M: Particle2dMaterial> {
+    view_bind_group: Option<BindGroup>,
     index_buffer: BufferVec<u32>,
+    _m: std::marker::PhantomData<M>,
 }
+
+impl<M: Particle2dMaterial> Default for ParticleMeta<M> {
+    fn default() -> Self {
+        Self {
+            view_bind_group: None,
+            index_buffer: BufferVec::<u32>::new(BufferUsages::INDEX),
+            _m: Default::default(),
+        }
+    }
+}
+
 // ----------------------------------------------
 // extract
 #[derive(Resource)]
@@ -226,10 +233,10 @@ fn queue_particles<M: Particle2dMaterial>(
     let draw_particles = transparent_2d_draw_functions
         .read()
         .id::<DrawParticle2d<M>>();
-    let msaa_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples());
+    // let msaa_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples());
 
     for (view, visible_entities, mut transparent_phase) in &mut views {
-        let view_key = msaa_key | Mesh2dPipelineKey::from_hdr(view.hdr);
+        // let view_key = msaa_key | Mesh2dPipelineKey::from_hdr(view.hdr);
 
         for (entity, _) in extract_particles.particles.iter() {
             if !visible_entities.entities.contains(&entity) {
@@ -272,7 +279,7 @@ pub struct InstanceData {
 impl From<&Particle> for InstanceData {
     #[inline(always)]
     fn from(value: &Particle) -> Self {
-        let transpose_model_3x3 = value.transform.compute_affine().matrix3;
+        let transpose_model_3x3 = value.transform.compute_affine().matrix3.transpose();
         Self {
             transform: [
                 transpose_model_3x3
@@ -285,7 +292,7 @@ impl From<&Particle> for InstanceData {
                     .z_axis
                     .extend(value.transform.translation.z),
             ],
-            color: value.color.as_rgba_f32(),
+            color: value.color.as_linear_rgba_f32(),
             custom: Vec4::new(
                 value.lifetime.fraction(),
                 value.lifetime.duration().as_secs_f32(),
@@ -404,7 +411,19 @@ fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
     mut cmd: Commands,
     extraced_batches: Res<ExtractedParticleBatches<M>>,
     render_device: Res<RenderDevice>,
+    view_uniforms: Res<ViewUniforms>,
+    particle_pipeline: Res<Particle2dPipeline<M>>,
+    mut particle_meta: ResMut<ParticleMeta<M>>,
 ) {
+    if let Some(view_binding) = view_uniforms.uniforms.binding() {
+        particle_meta.view_bind_group = Some(render_device.create_bind_group(
+            "particle_view_bind_group",
+            &particle_pipeline.view_layout,
+            &BindGroupEntries::single(view_binding),
+        ));
+    }
+
+    // @todo: merge together
     for (entity, particle_instances) in extraced_batches.particles.iter() {
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("instance data buffer"),
@@ -426,8 +445,8 @@ fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
 struct Particle2dPipeline<M: Particle2dMaterial> {
     vertex_shader: Handle<Shader>,
     fragment_shader: Handle<Shader>,
-    mesh_pipeline: Mesh2dPipeline,
     uniform_layout: BindGroupLayout,
+    view_layout: BindGroupLayout,
     _m: std::marker::PhantomData<M>,
 }
 
@@ -449,8 +468,16 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
         let vertex_shader = super::PARTICLE_VERTEX;
         let render_device = world.resource::<RenderDevice>();
 
+        let view_layout = render_device.create_bind_group_layout(
+            "particle_view_layout",
+            &BindGroupLayoutEntries::single(
+                ShaderStages::VERTEX_FRAGMENT,
+                uniform_buffer::<ViewUniform>(true),
+            ),
+        );
+
         Particle2dPipeline {
-            mesh_pipeline: world.resource::<Mesh2dPipeline>().clone(),
+            view_layout,
             uniform_layout: M::bind_group_layout(render_device), //world.resource::<ParticleUniformLayout>().0.clone(),
             vertex_shader,
             fragment_shader,
@@ -463,10 +490,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
     type Key = Particle2dPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-        let layout = vec![
-            self.mesh_pipeline.view_layout.clone(),
-            self.uniform_layout.clone(),
-        ];
+        let layout = vec![self.view_layout.clone(), self.uniform_layout.clone()];
 
         let format = if key.mesh_key.contains(Mesh2dPipelineKey::HDR) {
             ViewTarget::TEXTURE_FORMAT_HDR
@@ -480,7 +504,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
                 shader_defs: vec![],
                 entry_point: "vertex".into(),
                 buffers: vec![VertexBufferLayout {
-                    array_stride: VertexFormat::Float32x3.size(),
+                    array_stride: VertexFormat::Float32x4.size() * 5,
                     step_mode: VertexStepMode::Instance,
                     attributes: create_vertex_attributes(),
                 }],
@@ -568,15 +592,37 @@ fn create_vertex_attributes() -> Vec<VertexAttribute> {
 
 type DrawParticle2d<M> = (
     SetItemPipeline,
-    SetMesh2dViewBindGroup<0>,
+    SetParticleViewBindGroup<0, M>,
     SetParticle2dBindGroup<1, M>,
-    DrawParticleInstanced,
+    DrawParticleInstanced<M>,
 );
 
-struct SetParticle2dBindGroup<const I: usize, M: Particle2dMaterial> {
-    _m: std::marker::PhantomData<M>,
+pub struct SetParticleViewBindGroup<const I: usize, M: Particle2dMaterial>(
+    std::marker::PhantomData<M>,
+);
+impl<P: PhaseItem, M: Particle2dMaterial, const I: usize> RenderCommand<P>
+    for SetParticleViewBindGroup<I, M>
+{
+    type Param = SRes<ParticleMeta<M>>;
+    type ViewQuery = Read<ViewUniformOffset>;
+    type ItemQuery = ();
+
+    fn render<'w>(
+        _item: &P,
+        view_uniform: &'_ ViewUniformOffset,
+        _entity: Option<()>,
+        particle_meta: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        if let Some(bind_group) = &particle_meta.into_inner().view_bind_group.as_ref() {
+            pass.set_bind_group(I, bind_group, &[view_uniform.offset]);
+            return RenderCommandResult::Success;
+        }
+        RenderCommandResult::Failure
+    }
 }
 
+struct SetParticle2dBindGroup<const I: usize, M: Particle2dMaterial>(std::marker::PhantomData<M>);
 impl<const I: usize, M: Particle2dMaterial, P: PhaseItem> RenderCommand<P>
     for SetParticle2dBindGroup<I, M>
 {
@@ -611,9 +657,9 @@ impl<const I: usize, M: Particle2dMaterial, P: PhaseItem> RenderCommand<P>
     }
 }
 
-struct DrawParticleInstanced;
-impl<P: PhaseItem> RenderCommand<P> for DrawParticleInstanced {
-    type Param = SRes<ParticleMeta>;
+struct DrawParticleInstanced<M: Particle2dMaterial>(std::marker::PhantomData<M>);
+impl<P: PhaseItem, M: Particle2dMaterial> RenderCommand<P> for DrawParticleInstanced<M> {
+    type Param = SRes<ParticleMeta<M>>;
     type ViewQuery = ();
     type ItemQuery = Read<InstanceBuffer>;
 

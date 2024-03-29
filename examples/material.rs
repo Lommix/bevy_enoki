@@ -36,7 +36,7 @@ fn setup(
             ..default()
         },
         BloomSettings {
-            intensity: 0.3,
+            intensity: 0.1,
             ..default()
         },
     ));

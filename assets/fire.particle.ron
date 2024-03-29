@@ -1,6 +1,6 @@
 (
     spawn_rate: 0.05,
-    spawn_amount:  20,
+    spawn_amount:  100,
 	emission_shape: Circle(120),
     lifetime: (2.0, 0.5),
     direction: Some(((0, 1), 0.5)),

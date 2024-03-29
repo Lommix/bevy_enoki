@@ -63,7 +63,6 @@ impl Plugin for Particles2dPlugin {
             Shader::from_wgsl
         );
 
-        app.add_plugins(render::ParticleRenderPlugin);
         app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
 
         app.register_type::<update::ParticleStore>();

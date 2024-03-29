@@ -16,7 +16,6 @@ struct VertexIn {
 fn vertex(in: VertexIn) -> VertexOutput {
     var out: VertexOutput;
 
-
     let vertex_position = vec3<f32>(
         f32(in.index & 0x1u),
         f32((in.index & 0x2u) >> 1u),
@@ -27,10 +26,10 @@ fn vertex(in: VertexIn) -> VertexOutput {
         in.i_translation,
         in.i_rotation,
         in.i_scale,
-    )) * vec4<f32>(vertex_position, 1.0);
+    )) * vec4<f32>(vertex_position - vec3(0.5,0.5,0.), 1.0);
 
     out.color = in.i_color;
-	out.uv = vertex_position.xy;
+	out.uv = vertex_position.xy + vec2(0.5);
 
 	out.lifetime_frac = in.i_lifetime.x;
 	out.lifetime_total = in.i_lifetime.y;
