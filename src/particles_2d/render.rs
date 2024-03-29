@@ -18,13 +18,13 @@ use bevy::{
         },
         render_resource::{
             binding_types::uniform_buffer, AsBindGroup, BindGroup, BindGroupEntries,
-            BindGroupLayout, BindGroupLayoutEntries, BlendState, Buffer, BufferInitDescriptor,
-            BufferSlice, BufferUsages, BufferVec, ColorTargetState, ColorWrites, FrontFace,
-            IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode, PrimitiveState,
-            RenderPipelineDescriptor, ShaderRef, ShaderStages, SpecializedMeshPipeline,
-            SpecializedMeshPipelineError, SpecializedMeshPipelines, SpecializedRenderPipeline,
-            SpecializedRenderPipelines, TextureFormat, VertexAttribute, VertexBufferLayout,
-            VertexFormat, VertexStepMode,
+            BindGroupLayout, BindGroupLayoutEntries, BlendState, Buffer, BufferDescriptor,
+            BufferInitDescriptor, BufferSlice, BufferUsages, BufferVec, ColorTargetState,
+            ColorWrites, FrontFace, IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode,
+            PrimitiveState, RenderPipelineDescriptor, ShaderRef, ShaderStages,
+            SpecializedMeshPipeline, SpecializedMeshPipelineError, SpecializedMeshPipelines,
+            SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat, VertexAttribute,
+            VertexBufferLayout, VertexFormat, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, FallbackImage},
@@ -41,7 +41,7 @@ use bevy::{
     utils::{FloatOrd, HashMap, HashSet},
 };
 use bytemuck::{Pod, Zeroable};
-use std::hash::Hash;
+use std::{hash::Hash, ops::Range};
 
 /// Particle Material Trait
 /// bind custom fragment shader to material
@@ -69,11 +69,10 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent2d, DrawParticle2d<M>>()
             .init_resource::<SpecializedRenderPipelines<Particle2dPipeline<M>>>()
-            .init_resource::<ExtractedParticleBatches<M>>()
+            .init_resource::<ExtracedParticleSpawner<M>>()
             .init_resource::<ExtractedParticleMaterials<M>>()
             .init_resource::<PreparedParticleMaterials<M>>()
             .init_resource::<RenderParticleMaterials<M>>()
-            .init_resource::<ParticleMeta<M>>()
             .add_systems(
                 ExtractSchedule,
                 (extract_particles::<M>, extract_materials::<M>),
@@ -91,38 +90,26 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.init_resource::<Particle2dPipeline<M>>();
-        let render_device = render_app.world.resource::<RenderDevice>();
-        let mut buffer = BufferVec::<u32>::new(BufferUsages::INDEX);
-        // // quad order
-        buffer.push(2);
-        buffer.push(0);
-        buffer.push(1);
-        buffer.push(1);
-        buffer.push(3);
-        buffer.push(2);
-        buffer.write_buffer(render_device, render_app.world.resource::<RenderQueue>());
-        render_app.insert_resource(ParticleMeta::<M> {
-            index_buffer: buffer,
-            view_bind_group: None,
-            _m: Default::default(),
-        });
-    }
-}
+        render_app.init_resource::<ParticleMeta<M>>();
 
-#[derive(Resource)]
-pub struct ParticleMeta<M: Particle2dMaterial> {
-    view_bind_group: Option<BindGroup>,
-    index_buffer: BufferVec<u32>,
-    _m: std::marker::PhantomData<M>,
-}
+        let particle_buffer = {
+            let render_device = render_app.world.resource::<RenderDevice>();
+            let render_queue = render_app.world.resource::<RenderQueue>();
 
-impl<M: Particle2dMaterial> Default for ParticleMeta<M> {
-    fn default() -> Self {
-        Self {
-            view_bind_group: None,
-            index_buffer: BufferVec::<u32>::new(BufferUsages::INDEX),
-            _m: Default::default(),
-        }
+            let mut particle_buffer = ParticleMeta::<M>::default();
+            particle_buffer.index_buffer.push(2);
+            particle_buffer.index_buffer.push(0);
+            particle_buffer.index_buffer.push(1);
+            particle_buffer.index_buffer.push(1);
+            particle_buffer.index_buffer.push(3);
+            particle_buffer.index_buffer.push(2);
+            particle_buffer
+                .index_buffer
+                .write_buffer(render_device, render_queue);
+            particle_buffer
+        };
+
+        render_app.insert_resource(particle_buffer);
     }
 }
 
@@ -142,11 +129,11 @@ impl<M: Particle2dMaterial> Default for ExtractedParticleMaterials<M> {
 }
 
 #[derive(Resource)]
-pub struct ExtractedParticleBatches<M: Particle2dMaterial> {
+pub struct ExtracedParticleSpawner<M: Particle2dMaterial> {
     particles: EntityHashMap<Vec<InstanceData>>,
     _m: std::marker::PhantomData<M>,
 }
-impl<M: Particle2dMaterial> Default for ExtractedParticleBatches<M> {
+impl<M: Particle2dMaterial> Default for ExtracedParticleSpawner<M> {
     fn default() -> Self {
         Self {
             particles: Default::default(),
@@ -177,7 +164,7 @@ fn extract_materials<M: Particle2dMaterial>(
 
 fn extract_particles<M: Particle2dMaterial>(
     mut cmd: Commands,
-    mut extraced_batches: ResMut<ExtractedParticleBatches<M>>,
+    mut extraced_batches: ResMut<ExtracedParticleSpawner<M>>,
     mut render_material_instances: ResMut<RenderParticleMaterials<M>>,
     query: Extract<
         Query<(
@@ -221,7 +208,7 @@ fn queue_particles<M: Particle2dMaterial>(
     msaa: Res<Msaa>,
     mut pipelines: ResMut<SpecializedRenderPipelines<Particle2dPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
-    extract_particles: Res<ExtractedParticleBatches<M>>,
+    extract_particles: Res<ExtracedParticleSpawner<M>>,
     z_orders: Query<&ZOrder>,
 
     mut views: Query<(
@@ -305,12 +292,6 @@ impl From<&Particle> for InstanceData {
 
 #[derive(Component, Deref)]
 pub struct InstanceMaterialData(Vec<InstanceData>);
-
-#[derive(Component)]
-struct InstanceBuffer {
-    buffer: Buffer,
-    length: usize,
-}
 
 #[derive(Resource)]
 pub struct PreparedParticleMaterial<M: Particle2dMaterial> {
@@ -407,33 +388,68 @@ impl<M: Particle2dMaterial> Default for RenderParticleMaterials<M> {
 
 fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
     mut cmd: Commands,
-    extraced_batches: Res<ExtractedParticleBatches<M>>,
+    mut extracted_spawner: ResMut<ExtracedParticleSpawner<M>>,
     render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
     view_uniforms: Res<ViewUniforms>,
     particle_pipeline: Res<Particle2dPipeline<M>>,
-    mut particle_meta: ResMut<ParticleMeta<M>>,
+    mut particle_buffer: ResMut<ParticleMeta<M>>,
 ) {
     if let Some(view_binding) = view_uniforms.uniforms.binding() {
-        particle_meta.view_bind_group = Some(render_device.create_bind_group(
+        particle_buffer.view_bind_group = Some(render_device.create_bind_group(
             "particle_view_bind_group",
             &particle_pipeline.view_layout,
             &BindGroupEntries::single(view_binding),
         ));
     }
 
-    // @todo: merge together
-    for (entity, particle_instances) in extraced_batches.particles.iter() {
-        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("instance data buffer"),
-            contents: bytemuck::cast_slice(particle_instances.as_slice()),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+    particle_buffer.instance_buffer.clear();
+    let mut index = 0;
+
+    for (ent, instances) in extracted_spawner.particles.iter_mut() {
+        if instances.len() == 0 {
+            continue;
+        }
+
+        let batch = ParticleInstanceBatch {
+            range: index..index + instances.len() as u32,
+        };
+
+        index += instances.len() as u32;
+        instances.drain(..).for_each(|i| {
+            particle_buffer.instance_buffer.push(i);
         });
 
-        cmd.entity(*entity).insert(InstanceBuffer {
-            buffer,
-            length: particle_instances.len(),
-        });
+        cmd.entity(*ent).insert(batch);
     }
+
+    particle_buffer
+        .instance_buffer
+        .write_buffer(&render_device, &render_queue);
+}
+
+#[derive(Resource)]
+pub struct ParticleMeta<M: Particle2dMaterial> {
+    view_bind_group: Option<BindGroup>,
+    instance_buffer: BufferVec<InstanceData>,
+    index_buffer: BufferVec<u32>,
+    _m: std::marker::PhantomData<M>,
+}
+
+impl<M: Particle2dMaterial> Default for ParticleMeta<M> {
+    fn default() -> Self {
+        Self {
+            view_bind_group: None,
+            instance_buffer: BufferVec::<InstanceData>::new(BufferUsages::VERTEX),
+            index_buffer: BufferVec::<u32>::new(BufferUsages::INDEX),
+            _m: Default::default(),
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct ParticleInstanceBatch {
+    pub range: Range<u32>,
 }
 
 // ----------------------------------------------
@@ -642,28 +658,33 @@ struct DrawParticleInstanced<M: Particle2dMaterial>(std::marker::PhantomData<M>)
 impl<P: PhaseItem, M: Particle2dMaterial> RenderCommand<P> for DrawParticleInstanced<M> {
     type Param = SRes<ParticleMeta<M>>;
     type ViewQuery = ();
-    type ItemQuery = Read<InstanceBuffer>;
+    type ItemQuery = Read<ParticleInstanceBatch>;
 
     #[inline]
     fn render<'w>(
         _item: &P,
         _view: (),
-        instance_buffer: Option<&'w InstanceBuffer>,
+        instance_buffer: Option<&'w ParticleInstanceBatch>,
         meta: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(instance_buffer) = instance_buffer else {
+        let Some(batch) = instance_buffer else {
             return RenderCommandResult::Failure;
         };
 
         let particle_meta = meta.into_inner();
+
+        let Some(instance_buffer) = particle_meta.instance_buffer.buffer() else {
+            return RenderCommandResult::Failure;
+        };
+
         let Some(index_buffer) = particle_meta.index_buffer.buffer() else {
             return RenderCommandResult::Failure;
         };
 
         pass.set_index_buffer(index_buffer.slice(..), 0, IndexFormat::Uint32);
-        pass.set_vertex_buffer(0, instance_buffer.buffer.slice(..));
-        pass.draw_indexed(0..6, 0, 0..instance_buffer.length as u32);
+        pass.set_vertex_buffer(0, instance_buffer.slice(..));
+        pass.draw_indexed(0..6, 0, batch.range.clone());
 
         RenderCommandResult::Success
     }
