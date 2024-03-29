@@ -367,7 +367,6 @@ fn prepare_particle_materials<M: Particle2dMaterial>(
                 );
             }
             Err(_) => {
-                warn!("failed prep retry");
                 prepare_next_frame.push((asset_id, material));
             }
         }
@@ -391,7 +390,6 @@ fn prepare_particle_materials<M: Particle2dMaterial>(
                 );
             }
             Err(_) => {
-                warn!("failed prep");
                 prepare_next_frame.push((asset_id, material));
             }
         }
@@ -497,16 +495,46 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
         } else {
             TextureFormat::bevy_default()
         };
-
         RenderPipelineDescriptor {
             vertex: bevy::render::render_resource::VertexState {
                 shader: self.vertex_shader.clone(),
                 shader_defs: vec![],
                 entry_point: "vertex".into(),
                 buffers: vec![VertexBufferLayout {
-                    array_stride: VertexFormat::Float32x4.size() * 5,
+                    array_stride: 80,
                     step_mode: VertexStepMode::Instance,
-                    attributes: create_vertex_attributes(),
+                    attributes: vec![
+                        // translation
+                        VertexAttribute {
+                            format: VertexFormat::Float32x4,
+                            offset: 0,
+                            shader_location: 0,
+                        },
+                        // rotation
+                        VertexAttribute {
+                            format: VertexFormat::Float32x4,
+                            offset: 16,
+                            shader_location: 1,
+                        },
+                        // scale
+                        VertexAttribute {
+                            format: VertexFormat::Float32x4,
+                            offset: 32,
+                            shader_location: 2,
+                        },
+                        // color
+                        VertexAttribute {
+                            format: VertexFormat::Float32x4,
+                            offset: 48,
+                            shader_location: 3,
+                        },
+                        // custom
+                        VertexAttribute {
+                            format: VertexFormat::Float32x4,
+                            offset: 64,
+                            shader_location: 4,
+                        },
+                    ],
                 }],
             },
             fragment: Some(bevy::render::render_resource::FragmentState {
@@ -539,52 +567,6 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
             },
         }
     }
-}
-
-fn create_vertex_attributes() -> Vec<VertexAttribute> {
-    let mut attributes = Vec::new();
-    let mut offset = 0;
-
-    // translation
-    attributes.push(VertexAttribute {
-        format: VertexFormat::Float32x4,
-        offset,
-        shader_location: 0,
-    });
-    offset += VertexFormat::Float32x4.size();
-
-    // rotation
-    attributes.push(VertexAttribute {
-        format: VertexFormat::Float32x4,
-        offset,
-        shader_location: 1,
-    });
-    offset += VertexFormat::Float32x4.size();
-
-    // scale
-    attributes.push(VertexAttribute {
-        format: VertexFormat::Float32x4,
-        offset,
-        shader_location: 2,
-    });
-    offset += VertexFormat::Float32x4.size();
-
-    // color
-    attributes.push(VertexAttribute {
-        format: VertexFormat::Float32x4,
-        offset,
-        shader_location: 3,
-    });
-    offset += VertexFormat::Float32x4.size();
-
-    // custom
-    attributes.push(VertexAttribute {
-        format: VertexFormat::Float32x4,
-        offset,
-        shader_location: 4,
-    });
-
-    attributes
 }
 
 // ----------------------------------------------
@@ -652,7 +634,6 @@ impl<const I: usize, M: Particle2dMaterial, P: PhaseItem> RenderCommand<P>
         };
 
         pass.set_bind_group(I, &prepared_material.bind_group, &[]);
-
         RenderCommandResult::Success
     }
 }
@@ -676,11 +657,11 @@ impl<P: PhaseItem, M: Particle2dMaterial> RenderCommand<P> for DrawParticleInsta
         };
 
         let particle_meta = meta.into_inner();
-        pass.set_index_buffer(
-            particle_meta.index_buffer.buffer().unwrap().slice(..),
-            0,
-            IndexFormat::Uint32,
-        );
+        let Some(index_buffer) = particle_meta.index_buffer.buffer() else {
+            return RenderCommandResult::Failure;
+        };
+
+        pass.set_index_buffer(index_buffer.slice(..), 0, IndexFormat::Uint32);
         pass.set_vertex_buffer(0, instance_buffer.buffer.slice(..));
         pass.draw_indexed(0..6, 0, 0..instance_buffer.length as u32);
 
