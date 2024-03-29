@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "2D Particle system plugin, that works well in wasm"
 keywords = ["bevy", "particles", "shader", "2d", "particle"]
-repository = "https://github.com/Lommix/"
+repository = "https://github.com/Lommix/bevy_enoki"
 license = "MIT"
 
 [profile.dev]

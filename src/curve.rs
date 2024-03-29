@@ -94,6 +94,11 @@ impl<T> Curve<T>
 where
     T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
 {
+
+    pub fn new() -> Self{
+        Self { points: vec![] }
+    }
+
     /// sorts the curve ASC
     pub fn sort(&mut self) {
         self.points.sort_by(|a, b| a.1.total_cmp(&b.1));

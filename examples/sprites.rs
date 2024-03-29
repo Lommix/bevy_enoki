@@ -62,7 +62,7 @@ fn spawn_particles(
     mut cmd: Commands,
     mut query: Query<(&mut MoveTimer, &mut Pcindex)>,
     time: Res<Time>,
-    material : Res<ParticleMaterialAsset>,
+    material: Res<ParticleMaterialAsset>,
     server: Res<AssetServer>,
 ) {
     let Ok((mut timer, mut index)) = query.get_single_mut() else {
@@ -82,7 +82,8 @@ fn spawn_particles(
             ParticleSpawnerBundle {
                 transform: Transform::from_xyz(x, y, index.0),
                 effect: server.load("test.particle.ron"),
-                material: DEFAULT_MATERIAL,
+                material: material.0.clone(),
+                // material: DEFAULT_MATERIAL,
                 ..default()
             },
             OneShot,

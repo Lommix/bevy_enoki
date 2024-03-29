@@ -4,6 +4,12 @@ use serde::Deserialize;
 #[derive(Deserialize, Clone, Debug, Default)]
 pub struct Rval<V>(V, f32);
 
+impl<V> Rval<V> {
+    pub fn new(value: V, randomness: f32) -> Self {
+        Self(value, randomness)
+    }
+}
+
 pub trait Random<V> {
     fn rand(&self) -> V;
 }

@@ -97,9 +97,9 @@ pub(crate) fn update_spawner(
 ) {
     particles.par_iter_mut().for_each(
         |(entity, mut store, mut state, mut controller, visibility, effect_owner, transform)| {
-            // if visibility.get() {
-            //     return;
-            // }
+            if !visibility.get() {
+                return;
+            }
 
             if controller.max_particles <= store.0.len() as u32 {
                 return;

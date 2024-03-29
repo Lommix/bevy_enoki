@@ -6,7 +6,7 @@ mod values;
 
 #[allow(unused)]
 pub mod prelude {
-    pub use crate::curve::{Curve, LerpThat};
+    pub use crate::curve::{Curve, EaseFunction, LerpThat};
     pub use crate::particles_2d::prelude::*;
     pub use crate::values::{Random, Rval};
     pub use crate::EnokiPlugin;

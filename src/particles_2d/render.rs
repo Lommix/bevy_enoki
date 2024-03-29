@@ -10,7 +10,7 @@ use bevy::{
     },
     prelude::*,
     render::{
-        mesh::{GpuBufferInfo, MeshVertexBufferLayout, PrimitiveTopology},
+        mesh::PrimitiveTopology,
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
@@ -18,13 +18,11 @@ use bevy::{
         },
         render_resource::{
             binding_types::uniform_buffer, AsBindGroup, BindGroup, BindGroupEntries,
-            BindGroupLayout, BindGroupLayoutEntries, BlendState, Buffer, BufferDescriptor,
-            BufferInitDescriptor, BufferSlice, BufferUsages, BufferVec, ColorTargetState,
-            ColorWrites, FrontFace, IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode,
-            PrimitiveState, RenderPipelineDescriptor, ShaderRef, ShaderStages,
-            SpecializedMeshPipeline, SpecializedMeshPipelineError, SpecializedMeshPipelines,
-            SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat, VertexAttribute,
-            VertexBufferLayout, VertexFormat, VertexStepMode,
+            BindGroupLayout, BindGroupLayoutEntries, BlendState, BufferUsages, BufferVec,
+            ColorTargetState, ColorWrites, FrontFace, IndexFormat, OwnedBindingResource,
+            PipelineCache, PolygonMode, PrimitiveState, RenderPipelineDescriptor, ShaderRef,
+            ShaderStages, SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat,
+            VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, FallbackImage},
@@ -34,11 +32,8 @@ use bevy::{
         },
         Extract, Render, RenderApp, RenderSet,
     },
-    sprite::{
-        Mesh2dPipeline, Mesh2dPipelineKey, RenderMesh2dInstances, SetMesh2dBindGroup,
-        SetMesh2dViewBindGroup,
-    },
-    utils::{FloatOrd, HashMap, HashSet},
+    sprite::Mesh2dPipelineKey,
+    utils::{FloatOrd, HashMap},
 };
 use bytemuck::{Pod, Zeroable};
 use std::{hash::Hash, ops::Range};

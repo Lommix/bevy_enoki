@@ -86,10 +86,15 @@ impl Plugin for Particles2dPlugin {
             Update,
             (
                 loader::reload_effect,
-                update::update_spawner,
+                // update::update_spawner,
                 update::clone_effect,
                 update::remove_finished_spawner,
             ),
+        );
+
+        app.add_systems(
+            PostUpdate,
+            update::update_spawner.after(bevy::render::view::VisibilitySystems::CheckVisibility),
         );
     }
 }
