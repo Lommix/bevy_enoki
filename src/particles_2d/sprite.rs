@@ -6,6 +6,8 @@ use bevy::{
 };
 use serde::Deserialize;
 
+/// Sprite Material lets you add textures and animations
+/// to particles.
 #[derive(AsBindGroup, Asset, TypePath, Clone)]
 pub struct SpriteParticle2dMaterial {
     #[texture(0)]
@@ -38,9 +40,6 @@ impl Particle2dMaterial for SpriteParticle2dMaterial {
         PARTICLE_SPRITE_FRAG.into()
     }
 }
-
-// -------------------------------------------
-// asset loader
 
 #[derive(Deserialize)]
 pub struct SpriteParticle2dRon {

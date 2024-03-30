@@ -2,6 +2,8 @@ use bevy::{prelude::*, render::render_resource::AsBindGroup};
 
 use super::{prelude::Particle2dMaterial, PARTICLE_COLOR_FRAG};
 
+/// simple color material that gets multiplied by
+/// any color, caluclated in the particle effect
 #[derive(AsBindGroup, Asset, TypePath, Clone)]
 pub struct ColorParticle2dMaterial {
     #[uniform(0)]

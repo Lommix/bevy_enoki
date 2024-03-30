@@ -3,9 +3,12 @@ use crate::values::Random;
 use bevy::prelude::*;
 use std::time::Duration;
 
+/// Tag Component, deactivates spawner after the first
+/// spawning of particles
 #[derive(Component, Default)]
 pub struct OneShot;
 
+/// Spawner states controls the spawner
 #[derive(Component, Clone, Debug, Reflect)]
 pub struct ParticleSpawnerState {
     pub max_particles: u32,
@@ -13,6 +16,8 @@ pub struct ParticleSpawnerState {
     pub timer: Timer,
 }
 
+/// Each Spawner holds it's own copy of the effect,
+/// on hot reload these get synchonized
 #[derive(Component, Deref, DerefMut, Default)]
 pub struct ParticleEffectInstance(pub Option<Box<Particle2dEffect>>);
 
@@ -26,6 +31,7 @@ impl Default for ParticleSpawnerState {
     }
 }
 
+/// Component for storing particle data
 #[derive(Component, Default, Clone, Reflect, Deref)]
 pub struct ParticleStore(pub Vec<Particle>);
 
