@@ -6,14 +6,14 @@ use crate::particles_2d::sprite::ColorParticle2dMaterial;
 use bevy::{asset::load_internal_asset, prelude::*};
 
 mod loader;
-mod render;
+mod material;
 mod sprite;
 mod update;
 
 #[allow(unused)]
 pub mod prelude {
     pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
-    pub use super::render::{Particle2dMaterial, Particle2dMaterialPlugin};
+    pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::ColorParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
@@ -61,7 +61,7 @@ impl Plugin for Particles2dPlugin {
             Shader::from_wgsl
         );
 
-        app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
+        app.add_plugins(material::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
 
         app.register_type::<update::ParticleStore>();
         app.register_type::<update::ParticleSpawnerState>();
@@ -99,9 +99,7 @@ impl Plugin for Particles2dPlugin {
 /// Everything required to create a particle spawner
 #[derive(Bundle)]
 pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
-    /// controlls the spawner state
-    pub controller: ParticleSpawnerState,
-    /// holds the spawner timer state
+    /// holds the spawner state
     pub state: ParticleSpawnerState,
     /// particle effect handle
     pub effect: Handle<Particle2dEffect>,
@@ -124,7 +122,6 @@ impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
     fn default() -> Self {
         Self {
             state: ParticleSpawnerState::default(),
-            controller: ParticleSpawnerState::default(),
             effect: Handle::default(),
             effect_instance: ParticleEffectInstance::default(),
             particle_store: ParticleStore::default(),

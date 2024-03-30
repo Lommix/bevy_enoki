@@ -1,6 +1,6 @@
 /// ----------------------------------------------
 /// material example
-/// how to update add a custom material
+/// how to add a custom material
 /// ----------------------------------------------
 use bevy::{
     core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*,

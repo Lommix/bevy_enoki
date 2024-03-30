@@ -1,6 +1,6 @@
 /// ----------------------------------------------
 /// sprite example
-/// how to display a sprite animation
+/// how to display a sprite animation/texture
 /// ----------------------------------------------
 use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
