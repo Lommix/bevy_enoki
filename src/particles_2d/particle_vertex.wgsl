@@ -29,7 +29,7 @@ fn vertex(in: VertexIn) -> VertexOutput {
     )) * vec4<f32>(vertex_position - vec3(0.5,0.5,0.), 1.0);
 
     out.color = in.i_color;
-	out.uv = vertex_position.xy;
+	out.uv = vec2(vertex_position.x, 1.-vertex_position.y);
 
 	out.lifetime_frac = in.i_lifetime.x;
 	out.lifetime_total = in.i_lifetime.y;

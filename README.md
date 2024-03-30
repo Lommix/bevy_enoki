@@ -8,6 +8,12 @@
 
 Enoki - A 2D particle system for the Bevy game engine.
 
+
+<video autplay loop style="width:100%;height:auto">
+    <source src="docs/vid.webm" />
+</video>
+
+
 ## Overview
 
 The Enoki particle system is a CPU calculate particle system, that uses GPU Instancing and works well with `wasm`. It provides a `material trait`

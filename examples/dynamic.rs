@@ -30,7 +30,11 @@ pub struct Pcindex(f32);
 #[derive(Deref, Resource, DerefMut)]
 pub struct ParticleMaterialAsset(Handle<ColorParticle2dMaterial>);
 
-fn setup(mut cmd: Commands, server: Res<AssetServer>) {
+fn setup(
+    mut cmd: Commands,
+    mut materials: ResMut<Assets<ColorParticle2dMaterial>>,
+    server: Res<AssetServer>,
+) {
     cmd.spawn((
         Camera2dBundle {
             camera: Camera {
@@ -56,7 +60,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn((ParticleSpawnerBundle {
         effect: server.load("base.particle.ron"),
-        material: DEFAULT_MATERIAL,
+        material: materials.add(ColorParticle2dMaterial::new(server.load("enoki.png"), 1, 1)),
         ..default()
     },));
 }
