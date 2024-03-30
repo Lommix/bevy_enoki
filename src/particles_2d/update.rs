@@ -3,34 +3,25 @@ use crate::values::Random;
 use bevy::prelude::*;
 use std::time::Duration;
 
-#[derive(Component, Deref, DerefMut, Reflect)]
-pub struct ParticleState(Timer);
-
-impl Default for ParticleState {
-    fn default() -> Self {
-        Self(Timer::new(Duration::ZERO, TimerMode::Repeating))
-    }
-}
-
 #[derive(Component, Default)]
 pub struct OneShot;
 
 #[derive(Component, Clone, Debug, Reflect)]
-pub struct ParticleController {
+pub struct ParticleSpawnerState {
     pub max_particles: u32,
     pub active: bool,
-    pub burst: Option<u32>,
+    pub timer: Timer,
 }
 
 #[derive(Component, Deref, DerefMut, Default)]
-pub struct ParticleEffectOwner(pub Option<Box<Particle2dEffect>>);
+pub struct ParticleEffectInstance(pub Option<Box<Particle2dEffect>>);
 
-impl Default for ParticleController {
+impl Default for ParticleSpawnerState {
     fn default() -> Self {
         Self {
-            burst: None,
-            max_particles: u32::MAX,
             active: true,
+            max_particles: u32::MAX,
+            timer: Timer::new(Duration::ZERO, TimerMode::Repeating),
         }
     }
 }
@@ -55,8 +46,8 @@ pub struct Particle {
 
 pub(crate) fn clone_effect(
     mut particle_spawners: Query<
-        (&mut ParticleEffectOwner, &Handle<Particle2dEffect>),
-        Added<ParticleController>,
+        (&mut ParticleEffectInstance, &Handle<Particle2dEffect>),
+        Added<ParticleSpawnerState>,
     >,
     effects: Res<Assets<Particle2dEffect>>,
 ) {
@@ -73,7 +64,7 @@ pub(crate) fn clone_effect(
 
 pub(crate) fn remove_finished_spawner(
     mut cmd: Commands,
-    spawner: Query<(Entity, &ParticleStore, &ParticleController), With<OneShot>>,
+    spawner: Query<(Entity, &ParticleStore, &ParticleSpawnerState), With<OneShot>>,
 ) {
     spawner.iter().for_each(|(entity, store, controller)| {
         if !controller.active && store.len() == 0 {
@@ -86,56 +77,42 @@ pub(crate) fn update_spawner(
     mut particles: Query<(
         Entity,
         &mut ParticleStore,
-        &mut ParticleState,
-        &mut ParticleController,
+        &mut ParticleSpawnerState,
         &ViewVisibility,
-        &ParticleEffectOwner,
+        &ParticleEffectInstance,
         &GlobalTransform,
     )>,
     one_shots: Query<&OneShot>,
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, mut controller, visibility, effect_owner, transform)| {
+        |(entity, mut store, mut state, visibility, effect_instance, transform)| {
             if !visibility.get() {
                 return;
             }
 
-            if controller.max_particles <= store.0.len() as u32 {
+            if state.max_particles <= store.0.len() as u32 {
                 return;
             }
 
-            let Some(effect) = &effect_owner.0 else {
+            let Some(effect) = &effect_instance.0 else {
                 return;
             };
 
             let transform = transform.compute_transform();
 
-            state.set_duration(Duration::from_secs_f32(effect.spawn_rate));
-            state.tick(time.delta());
+            state
+                .timer
+                .set_duration(Duration::from_secs_f32(effect.spawn_rate));
+            state.timer.tick(time.delta());
 
-            if state.finished() && controller.active {
+            if state.timer.finished() && state.active {
                 for _ in 0..effect.spawn_amount {
                     store.0.push(create_particle(&effect, &transform))
                 }
 
                 if one_shots.get(entity).is_ok() {
-                    controller.active = false;
-                }
-
-                if controller
-                    .burst
-                    .as_mut()
-                    .map(|counter| match counter.checked_sub(effect.spawn_amount) {
-                        Some(remaining) => {
-                            *counter = remaining;
-                            false
-                        }
-                        None => true,
-                    })
-                    .unwrap_or_default()
-                {
-                    controller.active = false;
+                    state.active = false;
                 }
             }
 

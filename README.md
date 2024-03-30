@@ -16,7 +16,8 @@ Additionally, spawner configuration are provided via `ron` files, which can be h
 
 The default material allows not only for custom textures, but also sprite sheet animations over the particle lifetime.
 
-🚧 This Plugin just released and is still under heavy development. Except constant changes.
+🚧 This Plugin just released and is still under heavy development. The particle behavior is very basic and performance could be better.
+Except rapid change. I'll plan is to add some orbital velocity, attractors and simple physics. When 2d is fleshed out and the best it can be, 3d might happen.
 
 ## Compatibility
 
@@ -29,6 +30,7 @@ The default material allows not only for custom textures, but also sprite sheet 
 ```shell
 cargo run --examples material
 cargo run --examples sprites
+cargo run --examples dynamic
 ```
 
 ## Usage

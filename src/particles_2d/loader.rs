@@ -1,4 +1,4 @@
-use super::ParticleEffectOwner;
+use super::ParticleEffectInstance;
 use crate::{curve::Curve, values::Rval};
 use bevy::{
     asset::{AssetLoadError, AssetLoader, AsyncReadExt},
@@ -71,7 +71,7 @@ pub(crate) fn on_asset_loaded(
 pub(crate) fn reload_effect(
     mut cmd: Commands,
     mut effect_owner: Query<
-        (Entity, &mut ParticleEffectOwner, &Handle<Particle2dEffect>),
+        (Entity, &mut ParticleEffectInstance, &Handle<Particle2dEffect>),
         With<ReloadEffectTag>,
     >,
     effects: Res<Assets<Particle2dEffect>>,

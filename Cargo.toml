@@ -37,7 +37,6 @@ bevy = { version = "0.13.1", default-features = false, features = [
   "wayland",
   "default_font",
 ] }
-bevy_egui = "0.26.0"
 
 
 [[example]]

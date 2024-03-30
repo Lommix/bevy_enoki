@@ -1,5 +1,5 @@
 use self::prelude::{
-    Particle2dEffect, Particle2dMaterial, ParticleController, ParticleEffectOwner, ParticleState,
+    Particle2dEffect, Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState,
     ParticleStore,
 };
 use crate::particles_2d::sprite::ColorParticle2dMaterial;
@@ -15,9 +15,7 @@ pub mod prelude {
     pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
     pub use super::render::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::ColorParticle2dMaterial;
-    pub use super::update::{
-        OneShot, ParticleController, ParticleEffectOwner, ParticleState, ParticleStore,
-    };
+    pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
 
@@ -66,8 +64,8 @@ impl Plugin for Particles2dPlugin {
         app.add_plugins(render::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
 
         app.register_type::<update::ParticleStore>();
-        app.register_type::<update::ParticleState>();
-        app.register_type::<update::ParticleController>();
+        app.register_type::<update::ParticleSpawnerState>();
+        app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
 
         app.world
@@ -86,7 +84,6 @@ impl Plugin for Particles2dPlugin {
             Update,
             (
                 loader::reload_effect,
-                // update::update_spawner,
                 update::clone_effect,
                 update::remove_finished_spawner,
             ),
@@ -99,13 +96,22 @@ impl Plugin for Particles2dPlugin {
     }
 }
 
+/// Everything required to create a particle spawner
 #[derive(Bundle)]
 pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
-    pub controller: ParticleController,
-    pub state: ParticleState,
+    /// controlls the spawner state
+    pub controller: ParticleSpawnerState,
+    /// holds the spawner timer state
+    pub state: ParticleSpawnerState,
+    /// particle effect handle
     pub effect: Handle<Particle2dEffect>,
-    pub overwrite: ParticleEffectOwner,
+    /// the spawners unique effect value,
+    /// these can be modified at runtime,
+    /// hot reloading the asset resets them to the original state
+    pub effect_instance: ParticleEffectInstance,
+    /// hold the particle data
     pub particle_store: ParticleStore,
+    /// provided particle material
     pub material: Handle<M>,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -117,10 +123,10 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
 impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
     fn default() -> Self {
         Self {
-            state: ParticleState::default(),
-            controller: ParticleController::default(),
+            state: ParticleSpawnerState::default(),
+            controller: ParticleSpawnerState::default(),
             effect: Handle::default(),
-            overwrite: ParticleEffectOwner::default(),
+            effect_instance: ParticleEffectInstance::default(),
             particle_store: ParticleStore::default(),
             visibility: Visibility::default(),
             inherited_visibility: InheritedVisibility::default(),

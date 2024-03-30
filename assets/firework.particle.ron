@@ -1,7 +1,7 @@
 (
-    spawn_rate: 0.5,
-    spawn_amount:  100,
-	emission_shape: Point,
+    spawn_rate: 0.1,
+    spawn_amount: 1000,
+    emission_shape: Point,
     lifetime: (3.0, 0.5),
     direction: Some(((0, 1), 0.3)),
     linear_speed: Some((1000, 0.5)),
@@ -71,9 +71,9 @@
                 ),
                 (
                     Rgba(
-                        red: 0.0,
-                        green: 0.0,
-                        blue: 0.0,
+                        red: 0.5,
+                        green: 0.5,
+                        blue: 0.5,
                         alpha: 1.0,
                     ),
                     1.0,

@@ -1,12 +1,10 @@
 /// ----------------------------------------------
-/// material example
-/// how to update add a custom material
+/// dynamic example
+/// how to update effect behavior dynamiclly
 /// ----------------------------------------------
-use bevy::{
-    core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*,
-    render::render_resource::AsBindGroup,
-};
+use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
+use std::time::Duration;
 
 fn main() {
     App::new()
@@ -15,20 +13,24 @@ fn main() {
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(EnokiPlugin)
-        .add_plugins(Particle2dMaterialPlugin::<FireParticleMaterial>::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, show_fps)
+        .add_systems(Update, (show_fps, change_dynamic))
         .run()
 }
 
 #[derive(Component)]
 pub struct FpsText;
 
-fn setup(
-    mut cmd: Commands,
-    mut materials: ResMut<Assets<FireParticleMaterial>>,
-    server: Res<AssetServer>,
-) {
+#[derive(Deref, Component, DerefMut)]
+pub struct ChangeTimer(Timer);
+
+#[derive(Deref, Component, DerefMut)]
+pub struct Pcindex(f32);
+
+#[derive(Deref, Resource, DerefMut)]
+pub struct ParticleMaterialAsset(Handle<ColorParticle2dMaterial>);
+
+fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         Camera2dBundle {
             camera: Camera {
@@ -45,18 +47,35 @@ fn setup(
         },
     ));
 
-    let material = materials.add(FireParticleMaterial {
-        texture: server.load("noise.png"),
-    });
+    cmd.spawn((
+        ChangeTimer(Timer::new(Duration::from_millis(300), TimerMode::Repeating)),
+        Pcindex(0.),
+    ));
 
     cmd.spawn((TextBundle::default(), FpsText));
+
     cmd.spawn((ParticleSpawnerBundle {
-        transform: Transform::default(),
-        effect: server.load("ice.particle.ron"),
-        // material: DEFAULT_MATERIAL,
-        material,
+        effect: server.load("base.particle.ron"),
+        material: DEFAULT_MATERIAL,
         ..default()
     },));
+}
+
+fn change_dynamic(
+    mut elapsed: Local<f32>,
+    mut query: Query<&mut ParticleEffectInstance>,
+    time: Res<Time>,
+) {
+    *elapsed += time.delta_seconds();
+
+    let Ok(mut maybe_effect) = query.get_single_mut() else {
+        return;
+    };
+
+    if let Some(effect) = maybe_effect.0.as_mut() {
+        effect.linear_speed = Some(Rval::new(1000. * elapsed.sin().abs(), 0.1));
+        effect.spawn_amount = 100;
+    }
 }
 
 fn show_fps(
@@ -87,17 +106,4 @@ fn show_fps(
         },
     )]
     // info!(fps);
-}
-
-#[derive(AsBindGroup, Asset, TypePath, Clone, Default)]
-pub struct FireParticleMaterial {
-    #[texture(0)]
-    #[sampler(1)]
-    texture: Handle<Image>,
-}
-
-impl Particle2dMaterial for FireParticleMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
-        "custom_material.wgsl".into()
-    }
 }

@@ -215,11 +215,8 @@ fn queue_particles<M: Particle2dMaterial>(
     let draw_particles = transparent_2d_draw_functions
         .read()
         .id::<DrawParticle2d<M>>();
-    // let msaa_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples());
 
     for (view, visible_entities, mut transparent_phase) in &mut views {
-        // let view_key = msaa_key | Mesh2dPipelineKey::from_hdr(view.hdr);
-
         for (entity, _) in extract_particles.particles.iter() {
             if !visible_entities.entities.contains(&entity) {
                 continue;

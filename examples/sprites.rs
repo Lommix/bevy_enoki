@@ -1,3 +1,7 @@
+/// ----------------------------------------------
+/// sprite example
+/// how to display a sprite animation
+/// ----------------------------------------------
 use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
@@ -42,7 +46,7 @@ fn setup(
             ..default()
         },
         BloomSettings {
-            intensity: 0.0,
+            intensity: 0.1,
             ..default()
         },
     ));
@@ -81,7 +85,7 @@ fn spawn_particles(
         cmd.spawn((
             ParticleSpawnerBundle {
                 transform: Transform::from_xyz(x, y, index.0),
-                effect: server.load("test.particle.ron"),
+                effect: server.load("firework.particle.ron"),
                 material: material.0.clone(),
                 // material: DEFAULT_MATERIAL,
                 ..default()
