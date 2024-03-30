@@ -42,7 +42,7 @@ use std::{hash::Hash, ops::Range};
 /// bind custom fragment shader to material
 pub trait Particle2dMaterial: AsBindGroup + Asset + Clone + Sized {
     fn fragment_shader() -> ShaderRef {
-        super::PARTICLE_DEFAULT_FRAG.into()
+        super::PARTICLE_COLOR_FRAG.into()
     }
 }
 
@@ -466,7 +466,7 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
         let server = world.resource::<AssetServer>();
 
         let fragment_shader = match M::fragment_shader() {
-            ShaderRef::Default => super::PARTICLE_DEFAULT_FRAG,
+            ShaderRef::Default => super::PARTICLE_COLOR_FRAG,
             ShaderRef::Handle(handle) => handle,
             ShaderRef::Path(path) => server.load(path),
         };

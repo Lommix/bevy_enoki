@@ -28,13 +28,9 @@ pub struct ChangeTimer(Timer);
 pub struct Pcindex(f32);
 
 #[derive(Deref, Resource, DerefMut)]
-pub struct ParticleMaterialAsset(Handle<ColorParticle2dMaterial>);
+pub struct ParticleMaterialAsset(Handle<SpriteParticle2dMaterial>);
 
-fn setup(
-    mut cmd: Commands,
-    mut materials: ResMut<Assets<ColorParticle2dMaterial>>,
-    server: Res<AssetServer>,
-) {
+fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         Camera2dBundle {
             camera: Camera {
@@ -58,11 +54,11 @@ fn setup(
 
     cmd.spawn((TextBundle::default(), FpsText));
 
-    cmd.spawn((ParticleSpawnerBundle {
+    cmd.spawn(ParticleSpawnerBundle {
         effect: server.load("base.particle.ron"),
-        material: materials.add(ColorParticle2dMaterial::new(server.load("enoki.png"), 1, 1)),
+        material: DEFAULT_MATERIAL,
         ..default()
-    },));
+    });
 }
 
 fn change_dynamic(

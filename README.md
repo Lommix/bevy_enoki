@@ -59,7 +59,7 @@ use bevy_enoki::prelude::*;
 
 fn setup(
     mut cmd : Commands,
-    mut materials: ResMut<Assets<ColorParticle2dMaterial>>,
+    mut materials: ResMut<Assets<SpriteParticle2dMaterial>>,
     server : Res<AssetServer>,
 ){
     cmd.spawn(Camera2dBundle::default());
@@ -81,7 +81,7 @@ fn setup(
     let texture_material = materials.add(
         // hframes and vframes define how the sprite sheet is divided for animations,
         // if you just want to bind a single texture, leave both at 1.
-        ColorParticle2dMaterial::new(server.load("particle.png"), 6, 1),
+        SpriteParticle2dMaterial::new(server.load("particle.png"), 6, 1),
     );
 
     cmd.spawn((

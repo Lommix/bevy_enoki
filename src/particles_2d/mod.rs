@@ -2,12 +2,14 @@ use self::prelude::{
     Particle2dEffect, Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState,
     ParticleStore,
 };
-use crate::particles_2d::color::ColorParticle2dMaterial;
+use crate::particles_2d::sprite::SpriteParticle2dMaterial;
 use bevy::{asset::load_internal_asset, prelude::*};
+use color::ColorParticle2dMaterial;
 
 mod color;
 mod loader;
 mod material;
+mod sprite;
 mod update;
 
 #[allow(unused)]
@@ -15,6 +17,7 @@ pub mod prelude {
     pub use super::color::ColorParticle2dMaterial;
     pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
+    pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
@@ -23,7 +26,7 @@ pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
     Handle::weak_from_u128(97641680653231235698756524351080664231);
 pub(crate) const PARTICLE_VERTEX: Handle<Shader> =
     Handle::weak_from_u128(47641680653221245698756524350619564219);
-pub(crate) const PARTICLE_DEFAULT_FRAG: Handle<Shader> =
+pub(crate) const PARTICLE_COLOR_FRAG: Handle<Shader> =
     Handle::weak_from_u128(27641685611347896254665674658656433339);
 pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
     Handle::weak_from_u128(52323345476969163624641232313030656999);
@@ -49,8 +52,8 @@ impl Plugin for Particles2dPlugin {
 
         load_internal_asset!(
             app,
-            PARTICLE_DEFAULT_FRAG,
-            "particle_default_frag.wgsl",
+            PARTICLE_COLOR_FRAG,
+            "particle_color_frag.wgsl",
             Shader::from_wgsl
         );
 
@@ -61,6 +64,7 @@ impl Plugin for Particles2dPlugin {
             Shader::from_wgsl
         );
 
+        app.add_plugins(material::Particle2dMaterialPlugin::<SpriteParticle2dMaterial>::default());
         app.add_plugins(material::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
 
         app.register_type::<update::ParticleStore>();
@@ -74,7 +78,7 @@ impl Plugin for Particles2dPlugin {
 
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
-        app.init_asset_loader::<color::ColorParticle2dAssetLoader>();
+        app.init_asset_loader::<sprite::ColorParticle2dAssetLoader>();
 
         app.add_systems(
             First,

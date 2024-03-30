@@ -28,11 +28,11 @@ pub struct MoveTimer(Timer);
 pub struct Pcindex(f32);
 
 #[derive(Deref, Resource, DerefMut)]
-pub struct ParticleMaterialAsset(Handle<ColorParticle2dMaterial>);
+pub struct ParticleMaterialAsset(Handle<SpriteParticle2dMaterial>);
 
 fn setup(
     mut cmd: Commands,
-    mut materials: ResMut<Assets<ColorParticle2dMaterial>>,
+    mut materials: ResMut<Assets<SpriteParticle2dMaterial>>,
     server: Res<AssetServer>,
 ) {
     cmd.spawn((
@@ -58,7 +58,7 @@ fn setup(
 
     cmd.spawn((TextBundle::default(), FpsText));
     cmd.insert_resource(ParticleMaterialAsset(materials.add(
-        ColorParticle2dMaterial::new(server.load("particle.png"), 6, 1),
+        SpriteParticle2dMaterial::new(server.load("particle.png"), 6, 1),
     )));
 }
 
