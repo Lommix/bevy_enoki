@@ -2,19 +2,19 @@ use self::prelude::{
     Particle2dEffect, Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState,
     ParticleStore,
 };
-use crate::particles_2d::sprite::ColorParticle2dMaterial;
+use crate::particles_2d::color::ColorParticle2dMaterial;
 use bevy::{asset::load_internal_asset, prelude::*};
 
+mod color;
 mod loader;
 mod material;
-mod sprite;
 mod update;
 
 #[allow(unused)]
 pub mod prelude {
+    pub use super::color::ColorParticle2dMaterial;
     pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
-    pub use super::sprite::ColorParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
@@ -74,6 +74,7 @@ impl Plugin for Particles2dPlugin {
 
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
+        app.init_asset_loader::<color::ColorParticle2dAssetLoader>();
 
         app.add_systems(
             First,
