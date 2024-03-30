@@ -9,9 +9,7 @@
 Enoki - A 2D particle system for the Bevy game engine.
 
 
-<video autplay loop style="width:100%;height:auto">
-    <source src="docs/vid.webm" />
-</video>
+![animation](docs/output.gif)
 
 
 ## Overview
