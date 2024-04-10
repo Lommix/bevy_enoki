@@ -30,9 +30,9 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 ## Examples
 
 ```shell
-cargo run --examples material
-cargo run --examples sprites
-cargo run --examples dynamic
+cargo run --example material
+cargo run --example sprites
+cargo run --example dynamic
 ```
 
 ## Usage
