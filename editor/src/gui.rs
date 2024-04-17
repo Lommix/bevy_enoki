@@ -107,7 +107,7 @@ fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
         if let Some(mut damp) = effect.linear_damp.as_mut() {
             rval_f32_field(ui, "Damp", &mut damp);
         } else {
-            effect.angular_damp = Some(Rval::default());
+            effect.linear_damp = Some(Rval::default());
         }
 
         if let Some(mut accel) = effect.linear_acceleration.as_mut() {
@@ -152,15 +152,15 @@ fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
     });
 
     ui.collapsing("Scale", |ui| {
-        if let Some(mut scale) = effect.scale.as_mut() {
-            rval_f32_field(ui, "Init Scale", &mut scale);
-        } else {
-            effect.scale = Some(Rval::default());
-        }
-
         if let Some(scale_curve) = effect.scale_curve.as_mut() {
             curve_field_f32(ui, scale_curve);
         } else {
+            if let Some(mut scale) = effect.scale.as_mut() {
+                rval_f32_field(ui, "Init Scale", &mut scale);
+            } else {
+                effect.scale = Some(Rval::default());
+            }
+
             if ui.button("Add Scale Curve").clicked() {
                 let curve = Curve::new()
                     .with_point(1.0, 0.0, None)
@@ -171,12 +171,6 @@ fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
     });
 
     ui.collapsing("Color", |ui| {
-        // if let Some(mut scale) = effect.scale.as_mut() {
-        //     rval_f32_field(ui, "Init Scale", &mut scale);
-        // } else {
-        //     effect.scale = Some(Rval::default());
-        // }
-
         if let Some(color_curve) = effect.color_curve.as_mut() {
             curve_field_color(ui, color_curve);
         } else {
