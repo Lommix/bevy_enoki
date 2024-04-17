@@ -1,8 +1,8 @@
 use bevy::math::Vec2;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Clone, Debug, Default)]
-pub struct Rval<V>(V, f32);
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct Rval<V>(pub V, pub f32);
 
 impl<V> Rval<V> {
     pub fn new(value: V, randomness: f32) -> Self {

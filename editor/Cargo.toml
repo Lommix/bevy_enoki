@@ -1,0 +1,28 @@
+[package]
+name = "editor"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg=web_sys_unstable_apis"]
+
+[dependencies]
+anyhow = "1.0.82"
+bevy = { version = "0.13", features = ["wayland"] }
+bevy_egui = { version = "0.25.0", default-features = false, features = [
+  "default_fonts",
+  "render",
+] }
+egui_plot= "0.26"
+bevy_enoki = { path = "../." }
+crossbeam = { version = "0.8.4", features = ["crossbeam-deque", "crossbeam-channel"] }
+futures-lite = "2.3.0"
+rfd = "0.14.1"
+ron = "0.8.1"
+serde = { version = "1.0.197", features = ["derive"] }
