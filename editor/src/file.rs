@@ -107,7 +107,11 @@ pub(crate) fn file_dialog_save(file: EffectFile) {
         .detach();
 }
 
-pub(crate) fn file_panel(world: &mut World, ui: &mut Ui) {
+pub(crate) fn file_panel(
+    ui: &mut Ui,
+    effect: &mut ParticleEffectInstance,
+    file_res: &mut FileResource,
+) {
     egui::Grid::new("file_select")
         .num_columns(2)
         .spacing([4., 4.])
@@ -116,21 +120,16 @@ pub(crate) fn file_panel(world: &mut World, ui: &mut Ui) {
                 .add_sized([100., 30.], egui::Button::new("Import"))
                 .clicked()
             {
-                let sender = world.resource::<FileResource>().send.clone();
-                file_dialog_load(sender);
+                file_dialog_load(file_res.send.clone());
             }
 
             if ui
                 .add_sized([100., 30.], egui::Button::new("Export"))
                 .clicked()
             {
-                let current_file_name = world.resource::<FileResource>().name.clone();
-                let Some(file) = world
-                    .query::<&ParticleEffectInstance>()
-                    .get_single(world)
-                    .ok()
-                    .map(|instance| instance.0.as_ref())
-                    .flatten()
+                let Some(file) = effect
+                    .0
+                    .as_ref()
                     .map(|effect| match ron::ser::to_string(&effect) {
                         Ok(content) => Some(content),
                         Err(err) => {
@@ -140,7 +139,7 @@ pub(crate) fn file_panel(world: &mut World, ui: &mut Ui) {
                     })
                     .flatten()
                     .map(|content| EffectFile {
-                        file_name: current_file_name,
+                        file_name: file_res.name.clone(),
                         data: content.as_bytes().to_vec(),
                     })
                 else {

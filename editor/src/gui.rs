@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::render_asset::RenderAssetUsages};
 use bevy_egui::egui::{self, Color32, Ui, WidgetText};
 use bevy_enoki::prelude::*;
 use egui_plot::{Line, Plot, PlotPoints};
@@ -42,52 +42,52 @@ impl From<EmissionShape> for Shape {
     }
 }
 
-fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
-    egui::Grid::new("config")
-        .num_columns(2)
-        .spacing([4., 4.])
-        .min_col_width(100.)
-        .show(ui, |ui| {
-            ui.label("Amount");
-            ui.add(egui::Slider::new(&mut effect.spawn_amount, 0..=9999));
+pub(crate) fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
+    ui.collapsing("Spawner Settings", |ui| {
+        egui::Grid::new("config")
+            .num_columns(2)
+            .spacing([4., 4.])
+            .min_col_width(80.)
+            .show(ui, |ui| {
+                ui.label("Amount");
+                ui.add(egui::DragValue::new(&mut effect.spawn_amount).clamp_range(1..=9999));
 
-            ui.end_row();
+                ui.end_row();
 
-            ui.label("Rate");
-            ui.add(egui::Slider::new(&mut effect.spawn_rate, (0.01)..=3.));
+                ui.label("Rate");
+                ui.add(egui::Slider::new(&mut effect.spawn_rate, (0.01)..=2.));
 
-            ui.end_row();
+                ui.end_row();
 
-            let mut shape = Shape::from(effect.emission_shape.clone());
-            ui.label("Emission Shape");
+                let mut shape = Shape::from(effect.emission_shape.clone());
+                ui.label("Emission");
 
-            ui.horizontal(|ui| {
-                ui.style_mut().spacing.item_spacing = [4., 4.].into();
-                egui::ComboBox::from_label("")
-                    .selected_text(shape)
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut shape, Shape::Point, Shape::Point);
-                        ui.selectable_value(&mut shape, Shape::Circle, Shape::Circle);
-                    });
+                ui.horizontal(|ui| {
+                    ui.style_mut().spacing.item_spacing = [4., 4.].into();
+                    egui::ComboBox::from_label("")
+                        .selected_text(shape)
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut shape, Shape::Point, Shape::Point);
+                            ui.selectable_value(&mut shape, Shape::Circle, Shape::Circle);
+                        });
 
-                match shape {
-                    Shape::Point => effect.emission_shape = EmissionShape::Point,
-                    Shape::Circle => {
-                        let mut val = match effect.emission_shape {
-                            EmissionShape::Point => 0.,
-                            EmissionShape::Circle(val) => val,
-                        };
+                    match shape {
+                        Shape::Point => effect.emission_shape = EmissionShape::Point,
+                        Shape::Circle => {
+                            let mut val = match effect.emission_shape {
+                                EmissionShape::Point => 0.,
+                                EmissionShape::Circle(val) => val,
+                            };
 
-                        ui.add(egui::DragValue::new(&mut val));
-                        effect.emission_shape = EmissionShape::Circle(val);
+                            ui.add(egui::DragValue::new(&mut val));
+                            effect.emission_shape = EmissionShape::Circle(val);
+                        }
                     }
-                }
+                });
+
+                ui.end_row();
             });
 
-            ui.end_row();
-        });
-
-    ui.collapsing("Lifetime", |ui| {
         rval_f32_field(ui, "Lifetime", &mut effect.lifetime);
     });
 
@@ -232,8 +232,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut Curve<f32>) {
         .collect();
 
     let line = Line::new(sin);
-
-    let plot = egui_plot::Plot::new("test")
+    egui_plot::Plot::new("curve_f32")
         .height(100.)
         .allow_drag(false)
         .allow_double_click_reset(false)
@@ -287,18 +286,20 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
                 ui.label("value");
 
                 let c = val.as_rgba_u8();
-                let mut color = Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3]);
 
-                egui::color_picker::color_picker_color32(
+                let mut rgba =
+                    egui::Rgba::from_rgba_premultiplied(val.r(), val.g(), val.b(), val.a());
+
+                egui::color_picker::color_edit_button_rgba(
                     ui,
-                    &mut color,
+                    &mut rgba,
                     egui::color_picker::Alpha::Opaque,
                 );
 
-                val.set_r(color.r() as f32 / 255.);
-                val.set_g(color.g() as f32 / 255.);
-                val.set_b(color.b() as f32 / 255.);
-                val.set_a(color.a() as f32 / 255.);
+                val.set_r(rgba.r());
+                val.set_g(rgba.g());
+                val.set_b(rgba.b());
+                val.set_a(rgba.a());
 
                 if ui.button("Delete").clicked() {
                     remove.push(i);
