@@ -66,35 +66,6 @@ fn setup(mut cmd: Commands, mut effects: ResMut<Assets<Particle2dEffect>>) {
         effect,
         ..default()
     });
-
-    cmd.spawn(NodeBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            display: Display::Flex,
-            align_items: AlignItems::End,
-            ..default()
-        },
-        ..default()
-    })
-    .with_children(|cmd| {
-        cmd.spawn(TextBundle {
-            text: Text::from_section(
-                "Zoom: Mousewheel",
-                TextStyle {
-                    font: Default::default(),
-                    font_size: 22.,
-                    color: Color::WHITE,
-                },
-            ),
-            style: Style {
-                left: Val::Px(4.),
-                bottom: Val::Px(4.),
-                ..default()
-            },
-            ..default()
-        });
-    });
 }
 
 fn gui(
@@ -111,7 +82,6 @@ fn gui(
         .scroll2([false, true])
         .show(context.ctx_mut(), |ui| {
             file::file_panel(ui, &mut effect_instance, &mut file);
-
             if let Ok((mut camera, mut bloom)) = camera_query.get_single_mut() {
                 ui.collapsing("Scene Setting", |ui| {
                     egui::Grid::new("scene_setting")
