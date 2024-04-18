@@ -10,6 +10,5 @@ gzip -c editor.js > editor.js.gz
 gzip -c editor_bg.wasm > editor_bg.wasm.gz
 
 scp *.gz lommix@lommix.de:/home/lommix/blog/wasm/particle/.
-scp *.html lommix@lommix.de:/home/lommix/blog/wasm/particle/.
 
 rm panzatier.js.gz panzatier_bg.wasm.gz

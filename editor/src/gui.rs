@@ -1,22 +1,7 @@
-use bevy::{prelude::*, render::render_asset::RenderAssetUsages};
-use bevy_egui::egui::{self, Color32, Ui, WidgetText};
+use bevy::prelude::*;
+use bevy_egui::egui::{self, Ui, WidgetText};
 use bevy_enoki::prelude::*;
-use egui_plot::{Line, Plot, PlotPoints};
-
-pub(crate) fn effect_gui(world: &mut World, ui: &mut Ui) {
-    let Ok(mut effect_instance) = world
-        .query::<&mut ParticleEffectInstance>()
-        .get_single_mut(world)
-    else {
-        return;
-    };
-
-    let Some(effect) = effect_instance.0.as_mut() else {
-        return;
-    };
-
-    base_values(ui, &mut *effect);
-}
+use egui_plot::{Line, PlotPoints};
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum Shape {
@@ -42,13 +27,22 @@ impl From<EmissionShape> for Shape {
     }
 }
 
-pub(crate) fn base_values(ui: &mut Ui, effect: &mut Particle2dEffect) {
+pub(crate) fn config_gui(
+    ui: &mut Ui,
+    effect: &mut Particle2dEffect,
+    state: &mut ParticleSpawnerState,
+) {
     ui.collapsing("Spawner Settings", |ui| {
         egui::Grid::new("config")
             .num_columns(2)
             .spacing([4., 4.])
             .min_col_width(80.)
             .show(ui, |ui| {
+                ui.label("Active");
+                ui.checkbox(&mut state.active, "");
+
+                ui.end_row();
+
                 ui.label("Amount");
                 ui.add(egui::DragValue::new(&mut effect.spawn_amount).clamp_range(1..=9999));
 
@@ -284,8 +278,6 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
         .for_each(|(i, (val, pos, easing))| {
             egui::Grid::new(format!("p_{}", i)).show(ui, |ui| {
                 ui.label("value");
-
-                let c = val.as_rgba_u8();
 
                 let mut rgba =
                     egui::Rgba::from_rgba_premultiplied(val.r(), val.g(), val.b(), val.a());

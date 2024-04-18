@@ -27,6 +27,11 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 | ---: | ---------: |
 | 0.13 |        0.1 |
 
+## Editor
+
+Check out the new Web based particle editor at [Enoki Particle Editor](https://lommix.com/wasm/particle/index.html).
+Easily adjust your effects by importing and exporting the Ron configuration.
+
 ## Examples
 
 ```shell

@@ -1,24 +1,27 @@
 use bevy::{
     core_pipeline::bloom::BloomSettings, input::mouse::MouseWheel, prelude::*,
-    window::PrimaryWindow,
+    render::render_resource::AsBindGroup,
 };
-use bevy_egui::{
-    egui::{self, Color32},
-    EguiContext,
-};
+use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
 use file::FileResource;
 
+mod code;
 mod file;
 mod gui;
+
+pub(crate) const SPRITE_SHADER: Handle<Shader> =
+    Handle::weak_from_u128(908340313783013137964307813738);
 
 fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins,
             EnokiPlugin,
+            Particle2dMaterialPlugin::<SpriteMaterial>::default(),
             bevy_egui::EguiPlugin,
             file::FileManagerPlugin,
+            code::MaterialEditorPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (gui, zoom))
@@ -36,7 +39,11 @@ fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader
     })
 }
 
-fn setup(mut cmd: Commands, mut effects: ResMut<Assets<Particle2dEffect>>) {
+fn setup(
+    mut cmd: Commands,
+    mut effects: ResMut<Assets<Particle2dEffect>>,
+    mut materials: ResMut<Assets<SpriteMaterial>>,
+) {
     cmd.spawn((
         Camera2dBundle {
             transform: Transform::from_scale(Vec3::splat(2.0)),
@@ -62,7 +69,7 @@ fn setup(mut cmd: Commands, mut effects: ResMut<Assets<Particle2dEffect>>) {
     let effect = effects.add(effect);
 
     cmd.spawn(ParticleSpawnerBundle {
-        material: DEFAULT_MATERIAL,
+        material: materials.add(SpriteMaterial { texture: None }),
         effect,
         ..default()
     });
@@ -70,11 +77,11 @@ fn setup(mut cmd: Commands, mut effects: ResMut<Assets<Particle2dEffect>>) {
 
 fn gui(
     mut context: bevy_egui::EguiContexts,
-    mut effect_query: Query<&mut ParticleEffectInstance>,
+    mut effect_query: Query<(&mut ParticleEffectInstance, &mut ParticleSpawnerState)>,
     mut file: ResMut<FileResource>, // world: &mut World,
     mut camera_query: Query<(&mut Camera, &mut BloomSettings)>,
 ) {
-    let Ok(mut effect_instance) = effect_query.get_single_mut() else {
+    let Ok((mut effect_instance, mut state)) = effect_query.get_single_mut() else {
         return;
     };
 
@@ -135,7 +142,7 @@ fn gui(
             }
 
             if let Some(effect) = effect_instance.0.as_mut() {
-                gui::base_values(ui, effect);
+                gui::config_gui(ui, effect, &mut state);
             }
         });
 }
@@ -147,4 +154,17 @@ pub(crate) fn bevy_to_egui_color(color: Color) -> Color32 {
 
 pub(crate) fn egui_to_bevy_color(color: Color32) -> Color {
     Color::rgba_from_array(color.to_normalized_gamma_f32())
+}
+
+#[derive(AsBindGroup, Default, Clone, Asset, TypePath)]
+pub struct SpriteMaterial {
+    #[texture(0)]
+    #[sampler(1)]
+    pub texture: Option<Handle<Image>>,
+}
+
+impl Particle2dMaterial for SpriteMaterial {
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        SPRITE_SHADER.into()
+    }
 }

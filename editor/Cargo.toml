@@ -26,3 +26,4 @@ futures-lite = "2.3.0"
 rfd = "0.14.1"
 ron = "0.8.1"
 serde = { version = "1.0.197", features = ["derive"] }
+tracing-subscriber = "0.3.18"

@@ -1831,6 +1831,7 @@ dependencies = [
  "rfd",
  "ron",
  "serde",
+ "tracing-subscriber",
 ]
 
 [[package]]
