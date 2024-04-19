@@ -76,12 +76,18 @@ fn setup(
 }
 
 fn gui(
+    mut cmd: Commands,
     mut context: bevy_egui::EguiContexts,
-    mut effect_query: Query<(&mut ParticleEffectInstance, &mut ParticleSpawnerState)>,
+    mut effect_query: Query<(
+        Entity,
+        &mut ParticleEffectInstance,
+        &mut ParticleSpawnerState,
+    )>,
     mut file: ResMut<FileResource>, // world: &mut World,
     mut camera_query: Query<(&mut Camera, &mut BloomSettings)>,
+    mut one_shot_mode: Local<bool>,
 ) {
-    let Ok((mut effect_instance, mut state)) = effect_query.get_single_mut() else {
+    let Ok((entity, mut effect_instance, mut state)) = effect_query.get_single_mut() else {
         return;
     };
 
@@ -89,6 +95,28 @@ fn gui(
         .scroll2([false, true])
         .show(context.ctx_mut(), |ui| {
             file::file_panel(ui, &mut effect_instance, &mut file);
+
+            egui::Grid::new("one_shot")
+                .spacing([4., 4.])
+                .num_columns(2)
+                .min_col_width(100.)
+                .show(ui, |ui| {
+                    if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
+                        if *one_shot_mode {
+                            cmd.entity(entity).insert(OneShot::Deactivate);
+                        } else {
+                            cmd.entity(entity).remove::<OneShot>();
+                        }
+                    }
+
+                    if ui
+                        .add_sized([100., 30.], egui::Button::new("Spawn Once"))
+                        .clicked()
+                    {
+                        state.active = true;
+                    }
+                });
+
             if let Ok((mut camera, mut bloom)) = camera_query.get_single_mut() {
                 ui.collapsing("Scene Setting", |ui| {
                     egui::Grid::new("scene_setting")
