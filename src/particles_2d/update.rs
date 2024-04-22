@@ -6,7 +6,11 @@ use std::time::Duration;
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
 #[derive(Component, Default)]
-pub struct OneShot;
+pub enum OneShot {
+    #[default]
+    Deactivate,
+    Despawn,
+}
 
 /// Spawner states controls the spawner
 #[derive(Component, Clone, Debug, Reflect)]
@@ -70,13 +74,15 @@ pub(crate) fn clone_effect(
 
 pub(crate) fn remove_finished_spawner(
     mut cmd: Commands,
-    spawner: Query<(Entity, &ParticleStore, &ParticleSpawnerState), With<OneShot>>,
+    spawner: Query<(Entity, &ParticleStore, &ParticleSpawnerState, &OneShot)>,
 ) {
-    spawner.iter().for_each(|(entity, store, controller)| {
-        if !controller.active && store.len() == 0 {
-            cmd.entity(entity).despawn_recursive();
-        }
-    })
+    spawner
+        .iter()
+        .for_each(|(entity, store, controller, one_shot)| {
+            if matches!(one_shot, OneShot::Despawn) && !controller.active && store.len() == 0 {
+                cmd.entity(entity).despawn_recursive();
+            }
+        })
 }
 
 pub(crate) fn update_spawner(

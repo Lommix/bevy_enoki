@@ -90,7 +90,7 @@ fn spawn_particles(
                 // material: DEFAULT_MATERIAL,
                 ..default()
             },
-            OneShot,
+            OneShot::Despawn,
         ));
 
         index.0 += 1.;

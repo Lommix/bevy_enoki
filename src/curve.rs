@@ -1,45 +1,36 @@
 use bevy::prelude::*;
 use interpolation::Ease;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub enum EaseFunction {
     QuadraticIn,
     QuadraticOut,
     QuadraticInOut,
-
     CubicIn,
     CubicOut,
     CubicInOut,
-
     QuarticIn,
     QuarticOut,
     QuarticInOut,
-
     QuinticIn,
     QuinticOut,
     QuinticInOut,
-
     SineIn,
     SineOut,
     SineInOut,
-
     CircularIn,
     CircularOut,
     CircularInOut,
-
     ExponentialIn,
     ExponentialOut,
     ExponentialInOut,
-
     ElasticIn,
     ElasticOut,
     ElasticInOut,
-
     BackIn,
     BackOut,
     BackInOut,
-
     BounceIn,
     BounceOut,
     BounceInOut,
@@ -82,20 +73,19 @@ impl From<&EaseFunction> for interpolation::EaseFunction {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Default, Serialize, Debug, Clone)]
 pub struct Curve<T>
 where
     T: LerpThat<T> + std::fmt::Debug,
 {
-    points: Vec<(T, f32, Option<EaseFunction>)>,
+    pub points: Vec<(T, f32, Option<EaseFunction>)>,
 }
 
 impl<T> Curve<T>
 where
     T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
 {
-
-    pub fn new() -> Self{
+    pub fn new() -> Self {
         Self { points: vec![] }
     }
 

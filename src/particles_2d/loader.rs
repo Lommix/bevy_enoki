@@ -4,7 +4,7 @@ use bevy::{
     asset::{AssetLoadError, AssetLoader, AsyncReadExt},
     prelude::*,
 };
-use serde::Deserialize;
+use serde::{ Deserialize, Serialize };
 
 #[derive(Default)]
 pub struct ParticleEffectLoader;
@@ -87,14 +87,14 @@ pub(crate) fn reload_effect(
         });
 }
 
-#[derive(Deserialize, Default, Clone, Debug)]
+#[derive(Deserialize, Default, Clone, Debug, Serialize)]
 pub enum EmissionShape {
     #[default]
     Point,
     Circle(f32),
 }
 
-#[derive(Asset, TypePath, Default, Deserialize, Clone, Debug)]
+#[derive(Asset, TypePath, Default, Deserialize, Serialize, Clone, Debug)]
 pub struct Particle2dEffect {
     pub spawn_rate: f32,
     pub spawn_amount: u32,
