@@ -1,2 +1,4 @@
-web
+web/*.gz
+web/*.js
+web/*.wasm
 build.sh

@@ -1,11 +1,16 @@
+use base64::Engine;
 use bevy::{
-    core_pipeline::bloom::BloomSettings, input::mouse::MouseWheel, prelude::*,
-    render::render_resource::AsBindGroup,
+    core_pipeline::bloom::BloomSettings,
+    input::mouse::MouseWheel,
+    prelude::*,
+    render::render_resource::{AsBindGroup, Source},
 };
-use bevy_egui::egui::{self, Color32};
+use bevy_egui::egui::{self, Color32, Ui};
 use bevy_enoki::prelude::*;
 use file::FileResource;
+use wasm_bindgen::prelude::wasm_bindgen;
 
+mod bindings;
 mod code;
 mod file;
 mod gui;
@@ -14,6 +19,18 @@ pub(crate) const SPRITE_SHADER: Handle<Shader> =
     Handle::weak_from_u128(908340313783013137964307813738);
 
 fn main() {
+    #[cfg(not(target_arch = "wasm32"))]
+    run(None);
+}
+
+#[wasm_bindgen]
+pub fn run(options: Option<String>) {
+    let config = options
+        .map(|hash_encoded| base64::prelude::BASE64_STANDARD.decode(hash_encoded).ok())
+        .flatten()
+        .map(|config_string| ron::de::from_bytes::<bindings::ConfigOptions>(&config_string).ok())
+        .flatten();
+
     App::new()
         .add_plugins((
             DefaultPlugins,
@@ -21,11 +38,66 @@ fn main() {
             Particle2dMaterialPlugin::<SpriteMaterial>::default(),
             bevy_egui::EguiPlugin,
             file::FileManagerPlugin,
-            code::MaterialEditorPlugin,
+            // code::MaterialEditorPlugin,
+            bindings::BindingPlugin,
+            LoaderPlugin(config),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (gui, zoom))
-        .run()
+        .run();
+}
+
+// this is not how you should do it, i am just lazy
+struct LoaderPlugin(Option<bindings::ConfigOptions>);
+impl Plugin for LoaderPlugin {
+    fn build(&self, app: &mut App) {
+        let shader_content = match self.0.as_ref() {
+            Some(config) => config.shader.clone(),
+            None => r#"#import bevy_enoki::particle_vertex_out::{ VertexOutput }
+
+@group(1) @binding(0) var texture: texture_2d<f32>;
+@group(1) @binding(1) var texture_sampler: sampler;
+
+
+@fragment
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+	return textureSample(texture, texture_sampler, in.uv) * in.color;
+}"#
+            .into(),
+        };
+
+        app.world
+            .resource_mut::<Assets<Shader>>()
+            .insert(SPRITE_SHADER, Shader::from_wgsl(shader_content, ""));
+
+        let effect_handle = match self.0.as_ref() {
+            Some(config) => {
+                let handle = app
+                    .world
+                    .resource_mut::<Assets<Particle2dEffect>>()
+                    .add(config.effect.clone());
+                handle
+            }
+            None => {
+                let fireworks = include_str!("../../assets/firework.particle.ron");
+                let effect: Particle2dEffect = ron::de::from_str(fireworks).unwrap();
+                app.world
+                    .resource_mut::<Assets<Particle2dEffect>>()
+                    .add(effect)
+            }
+        };
+
+        let material_handle = app
+            .world
+            .resource_mut::<Assets<SpriteMaterial>>()
+            .add(SpriteMaterial { texture: None });
+
+        app.world.spawn(ParticleSpawnerBundle {
+            material: material_handle,
+            effect: effect_handle,
+            ..default()
+        });
+    }
 }
 
 fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader<MouseWheel>) {
@@ -39,11 +111,7 @@ fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader
     })
 }
 
-fn setup(
-    mut cmd: Commands,
-    mut effects: ResMut<Assets<Particle2dEffect>>,
-    mut materials: ResMut<Assets<SpriteMaterial>>,
-) {
+fn setup(mut cmd: Commands) {
     cmd.spawn((
         Camera2dBundle {
             transform: Transform::from_scale(Vec3::splat(2.0)),
@@ -63,16 +131,6 @@ fn setup(
             ..default()
         },
     ));
-
-    let fireworks = include_str!("../../assets/firework.particle.ron");
-    let effect: Particle2dEffect = ron::de::from_str(fireworks).unwrap();
-    let effect = effects.add(effect);
-
-    cmd.spawn(ParticleSpawnerBundle {
-        material: materials.add(SpriteMaterial { texture: None }),
-        effect,
-        ..default()
-    });
 }
 
 fn gui(
@@ -95,7 +153,6 @@ fn gui(
         .scroll2([false, true])
         .show(context.ctx_mut(), |ui| {
             file::file_panel(ui, &mut effect_instance, &mut file);
-
             egui::Grid::new("one_shot")
                 .spacing([4., 4.])
                 .num_columns(2)

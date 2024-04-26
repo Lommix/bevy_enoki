@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+    <head>
+        <title>bevy_enoki particle editor</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Web based particle editor" />
+        <style>
+            * {
+                marign: 0;
+                padding: 0;
+            }
+
+            html {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                font-family: sans-serif;
+                font-weight: bold;
+                font-size: 1rem;
+                color: white;
+            }
+
+            canvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            .overlay {
+                width: 100%;
+                position: absolute;
+                bottom: 0;
+                display: flex;
+                justify-content: space-between;
+            }
+            .overlay > * {
+                padding: 0.5rem;
+            }
+            .editor-container {
+                position: absolute;
+                bottom: 0;
+                height: auto;
+                padding: 2rem 0.5rem;
+            }
+            #code-editor {
+                background: #222;
+                color: white;
+                padding: 1rem;
+                z-index: 100;
+                min-width: 40rem;
+                min-height: 10rem;
+                display: grid;
+				font-size: 0.85rem;
+            }
+            .action-bar {
+                display: flex;
+                gap: 0.25rem;
+				padding: 0.25rem 0;
+            }
+            button {
+                background: black;
+                padding: 0.5rem 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <div class="editor-container">
+            <div class="action-bar">
+                <button id="update_button">update</button>
+                <button id="copy_url">copy url</button>
+            </div>
+            <textarea id="code-editor"></textarea>
+        </div>
+
+        <div class="overlay">
+            <p>Zoom: Mousewheel</p>
+            <a href="https://github.com/Lommix/bevy_enoki" target="_blank">Bevy Enoki on Github</a>
+        </div>
+
+        <script src="main.js" type="module"></script>
+    </body>
+</html>
