@@ -7,7 +7,7 @@ window.addEventListener("shader-loaded", (e) => {
 });
 
 window.addEventListener("url-generated", async (e) => {
-    const url = `${window.location.host}?config=${e.detail}`;
+	const url = `${window.location.origin}${window.location.pathname}?config=${e.detail}`;
     await navigator.clipboard.writeText(url);
     alert("url copied to clipboard");
 });
