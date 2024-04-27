@@ -15,10 +15,12 @@ impl Plugin for BindingPlugin {
         app.add_systems(
             Update,
             (
-                update_shader_code.run_if(on_timer(Duration::from_millis(100))),
-                update_url.run_if(on_timer(Duration::from_millis(100))),
+                update_shader_code.run_if(on_timer(Duration::from_millis(50))),
+                #[cfg(target_arch = "wasm32")]
+                generate_url_event.run_if(on_timer(Duration::from_millis(50))),
             ),
         );
+        #[cfg(target_arch = "wasm32")]
         app.add_systems(Startup, startup);
     }
 }
@@ -70,7 +72,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 #[derive(Default)]
 struct SharedWebState {
     shader_code: String,
-    url: String,
+    url_requested: bool,
 }
 
 lazy_static! {
@@ -87,11 +89,11 @@ pub fn load_shader(shader_code: String) {
 }
 
 #[wasm_bindgen]
-pub fn get_url() -> Option<String> {
-    let Ok(state) = SHADER_CODE.lock() else {
-        return None;
+pub fn request_url() {
+    let Ok(mut state) = SHADER_CODE.lock() else {
+        return;
     };
-    Some(state.url.clone())
+    state.url_requested = true;
 }
 
 // --------------------------------------------------
@@ -111,10 +113,16 @@ fn update_shader_code(mut shaders: ResMut<Assets<Shader>>) {
     }
 }
 
-fn update_url(query: Query<&ParticleEffectInstance>, shaders: Res<Assets<Shader>>) {
-    let Ok(mut obj) = SHADER_CODE.try_lock() else {
+fn generate_url_event(query: Query<&ParticleEffectInstance>, shaders: Res<Assets<Shader>>) {
+    let Ok(mut state) = SHADER_CODE.try_lock() else {
         return;
     };
+
+    if state.url_requested {
+        state.url_requested = false;
+    } else {
+        return;
+    }
 
     let Some(shader) = shaders.get(SPRITE_SHADER) else {
         return;
@@ -135,7 +143,18 @@ fn update_url(query: Query<&ParticleEffectInstance>, shaders: Res<Assets<Shader>
     };
 
     let option_string = ron::ser::to_string(&options).unwrap();
-    let base64_string = base64::prelude::BASE64_STANDARD.encode(option_string);
+    let base64_string = base64::prelude::BASE64_URL_SAFE.encode(option_string);
 
-    obj.url = base64_string;
+    let event = web_sys::CustomEvent::new("shader").unwrap();
+    event.init_custom_event_with_can_bubble_and_cancelable_and_detail(
+        "url-generated",
+        false,
+        false,
+        &JsValue::from_str(base64_string.as_str()),
+    );
+
+    let window = web_sys::window().expect("should have a window in this context");
+    window
+        .dispatch_event(&event)
+        .expect("should dispatch the custom event");
 }

@@ -1,9 +1,15 @@
 import init from "./editor.js";
-import { run, load_shader, get_url, load_image } from "./editor.js";
+import { run, load_shader, request_url, load_image } from "./editor.js";
 
 window.addEventListener("shader-loaded", (e) => {
     const editor = document.querySelector("#code-editor");
     editor.value = e.detail;
+});
+
+window.addEventListener("url-generated", async (e) => {
+    const url = `${window.location.host}?config=${e.detail}`;
+    await navigator.clipboard.writeText(url);
+    alert("url copied to clipboard");
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,12 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelector("#copy_url").addEventListener("click", async () => {
-        try {
-            const url = `${window.location.host}?config=${get_url()}`;
-            await navigator.clipboard.writeText(url);
-        } catch (err) {
-            console.log(err);
-        }
+        request_url();
     });
 
     document.querySelector("#texture_button").addEventListener("click", (event) => {
@@ -30,8 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector("#texture_input").addEventListener("change", (event) => {
         const file = event.target.files[0];
         document.querySelector("#texture_button").innerHTML = file.name;
-
-        console.log(file);
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e) {

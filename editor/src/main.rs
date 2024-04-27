@@ -26,7 +26,7 @@ fn main() {
 #[wasm_bindgen]
 pub fn run(options: Option<String>) {
     let config = options
-        .map(|hash_encoded| base64::prelude::BASE64_STANDARD.decode(hash_encoded).ok())
+        .map(|hash_encoded| base64::prelude::BASE64_URL_SAFE.decode(hash_encoded).ok())
         .flatten()
         .map(|config_string| ron::de::from_bytes::<bindings::ConfigOptions>(&config_string).ok())
         .flatten();
