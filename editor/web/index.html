@@ -10,19 +10,16 @@
                 marign: 0;
                 padding: 0;
             }
-
             html {
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
             }
-
             body {
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
             }
-
             * {
                 margin: 0;
                 padding: 0;
@@ -31,12 +28,10 @@
                 font-size: 1rem;
                 color: white;
             }
-
             canvas {
                 width: 100% !important;
                 height: 100% !important;
             }
-
             .overlay {
                 width: 100%;
                 position: absolute;
@@ -58,15 +53,16 @@
                 color: white;
                 padding: 1rem;
                 z-index: 100;
-                min-width: 40rem;
+                min-width: 30rem;
                 min-height: 10rem;
                 display: grid;
-				font-size: 0.85rem;
+                font-size: 0.85rem;
             }
             .action-bar {
                 display: flex;
                 gap: 0.25rem;
-				padding: 0.25rem 0;
+                padding: 0.25rem 0;
+				justify-content: space-between;
             }
             button {
                 background: black;
@@ -78,8 +74,11 @@
         <canvas id="canvas"></canvas>
         <div class="editor-container">
             <div class="action-bar">
-                <button id="update_button">update</button>
-                <button id="copy_url">copy url</button>
+				<div class="left">
+					<button id="update_button">update shader</button>
+					<button id="texture_button">load texture</button>
+				</div>
+				<button id="copy_url">copy url</button>
             </div>
             <textarea id="code-editor"></textarea>
         </div>
@@ -89,6 +88,7 @@
             <a href="https://github.com/Lommix/bevy_enoki" target="_blank">Bevy Enoki on Github</a>
         </div>
 
+		<input id="texture_input" accept=".png" type="file" hidden></input>
         <script src="main.js" type="module"></script>
     </body>
 </html>

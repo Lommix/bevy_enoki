@@ -11,9 +11,9 @@ use file::FileResource;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 mod bindings;
-mod code;
 mod file;
 mod gui;
+mod texture;
 
 pub(crate) const SPRITE_SHADER: Handle<Shader> =
     Handle::weak_from_u128(908340313783013137964307813738);
@@ -38,7 +38,7 @@ pub fn run(options: Option<String>) {
             Particle2dMaterialPlugin::<SpriteMaterial>::default(),
             bevy_egui::EguiPlugin,
             file::FileManagerPlugin,
-            // code::MaterialEditorPlugin,
+            texture::TextureLoaderPlugin,
             bindings::BindingPlugin,
             LoaderPlugin(config),
         ))
