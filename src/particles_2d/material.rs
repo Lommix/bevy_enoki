@@ -217,17 +217,17 @@ fn queue_particles<M: Particle2dMaterial>(
         .id::<DrawParticle2d<M>>();
 
     for (view, visible_entities, mut transparent_phase) in &mut views {
+
+        let mesh_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples())
+            | Mesh2dPipelineKey::from_hdr(view.hdr);
+
+        let key = Particle2dPipelineKey { mesh_key };
+        let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
+
         for (entity, _) in extract_particles.particles.iter() {
             if !visible_entities.entities.contains(&entity) {
                 continue;
             }
-
-            let mesh_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples())
-                | Mesh2dPipelineKey::from_hdr(view.hdr);
-
-            let key = Particle2dPipelineKey { mesh_key };
-
-            let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
             let Ok(order) = z_orders.get(*entity) else {
                 return;
