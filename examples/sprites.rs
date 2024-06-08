@@ -15,7 +15,7 @@ fn main() {
         .add_plugins(EnokiPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (show_fps, spawn_particles))
-        .run()
+        .run();
 }
 
 #[derive(Component)]

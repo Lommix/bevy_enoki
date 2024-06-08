@@ -1,4 +1,4 @@
-#import bevy_render::{ maths::affine_to_square, view::View }
+#import bevy_render::{ maths::affine3_to_square, view::View }
 #import bevy_enoki::particle_vertex_out::{ VertexOutput }
 
 @group(0) @binding(0) var<uniform> view: View;
@@ -22,7 +22,7 @@ fn vertex(in: VertexIn) -> VertexOutput {
         0.0
     );
 
-    out.clip_position = view.view_proj * affine_to_square(mat3x4<f32>(
+    out.clip_position = view.view_from_world * affine3_to_square(mat3x4<f32>(
         in.i_translation,
         in.i_rotation,
         in.i_scale,

@@ -8,32 +8,34 @@ use bevy::{
             SystemParamItem,
         },
     },
+    math::FloatOrd,
     prelude::*,
     render::{
         mesh::PrimitiveTopology,
         render_asset::RenderAssets,
         render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, RenderCommand, RenderCommandResult,
-            RenderPhase, SetItemPipeline, TrackedRenderPass,
+            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
+            RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
+            ViewSortedRenderPhases,
         },
         render_resource::{
             binding_types::uniform_buffer, AsBindGroup, BindGroup, BindGroupEntries,
             BindGroupLayout, BindGroupLayoutEntries, BlendState, BufferUsages, BufferVec,
             ColorTargetState, ColorWrites, FrontFace, IndexFormat, OwnedBindingResource,
             PipelineCache, PolygonMode, PrimitiveState, RenderPipelineDescriptor, ShaderRef,
-            ShaderStages, SpecializedRenderPipeline, SpecializedRenderPipelines, TextureFormat,
-            VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode,
+            ShaderStages, ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines,
+            TextureFormat, VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
-        texture::{BevyDefault, FallbackImage},
+        texture::{BevyDefault, FallbackImage, GpuImage},
         view::{
             ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
             VisibleEntities,
         },
         Extract, Render, RenderApp, RenderSet,
     },
-    sprite::Mesh2dPipelineKey,
-    utils::{FloatOrd, HashMap},
+    sprite::{Mesh2dPipelineKey, WithSprite},
+    utils::HashMap,
 };
 use bytemuck::{Pod, Zeroable};
 use std::{hash::Hash, ops::Range};
@@ -88,8 +90,8 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
         render_app.init_resource::<ParticleMeta<M>>();
 
         let particle_buffer = {
-            let render_device = render_app.world.resource::<RenderDevice>();
-            let render_queue = render_app.world.resource::<RenderQueue>();
+            let render_device = render_app.world().resource::<RenderDevice>();
+            let render_queue = render_app.world().resource::<RenderQueue>();
 
             let mut particle_buffer = ParticleMeta::<M>::default();
             particle_buffer.index_buffer.push(2);
@@ -187,9 +189,13 @@ fn extract_particles<M: Particle2dMaterial>(
         render_material_instances.insert(entity, material_handle.id());
 
         cmd.get_or_spawn(entity)
+            .insert(ParticleTag)
             .insert(ZOrder(FloatOrd(global.translation().z)));
     });
 }
+
+#[derive(Component, Default)]
+pub struct ParticleTag;
 
 #[derive(Component, Deref)]
 pub struct ZOrder(FloatOrd);
@@ -205,18 +211,17 @@ fn queue_particles<M: Particle2dMaterial>(
     pipeline_cache: Res<PipelineCache>,
     extract_particles: Res<ExtracedParticleSpawner<M>>,
     z_orders: Query<&ZOrder>,
-
-    mut views: Query<(
-        &ExtractedView,
-        &VisibleEntities,
-        &mut RenderPhase<Transparent2d>,
-    )>,
+    views: Query<(Entity, &ExtractedView, &VisibleEntities)>,
+    mut render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
 ) {
     let draw_particles = transparent_2d_draw_functions
         .read()
         .id::<DrawParticle2d<M>>();
 
-    for (view, visible_entities, mut transparent_phase) in &mut views {
+    for (view_entity, view, visible_entities) in &views {
+        let Some(transparent_phase) = render_phases.get_mut(&view_entity) else {
+            continue;
+        };
 
         let mesh_key = Mesh2dPipelineKey::from_msaa_samples(msaa.samples())
             | Mesh2dPipelineKey::from_hdr(view.hdr);
@@ -225,7 +230,11 @@ fn queue_particles<M: Particle2dMaterial>(
         let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
         for (entity, _) in extract_particles.particles.iter() {
-            if !visible_entities.entities.contains(&entity) {
+            if visible_entities
+                .iter::<With<ParticleTag>>()
+                .find(|e| e.index() == entity.index())
+                .is_none()
+            {
                 continue;
             }
 
@@ -234,12 +243,12 @@ fn queue_particles<M: Particle2dMaterial>(
             };
 
             transparent_phase.add(Transparent2d {
+                extra_index: PhaseItemExtraIndex::NONE,
                 sort_key: **order,
                 entity: *entity,
                 pipeline,
                 draw_function: draw_particles,
                 batch_range: 0..1,
-                dynamic_offset: None,
             });
         }
     }
@@ -248,13 +257,13 @@ fn queue_particles<M: Particle2dMaterial>(
 // ----------------------------------------------
 //
 
-#[derive(Clone, Copy, Pod, Zeroable)]
-#[repr(C)]
+#[derive(Clone, Copy, ShaderType)]
 pub struct InstanceData {
     transform: [Vec4; 3],
     color: [f32; 4],
     custom: Vec4,
 }
+
 impl From<&Particle> for InstanceData {
     #[inline(always)]
     fn from(value: &Particle) -> Self {
@@ -271,7 +280,7 @@ impl From<&Particle> for InstanceData {
                     .z_axis
                     .extend(value.transform.translation.z),
             ],
-            color: value.color.as_linear_rgba_f32(),
+            color: value.color.linear().to_f32_array(),
             custom: Vec4::new(
                 value.lifetime.fraction(),
                 value.lifetime.duration().as_secs_f32(),
@@ -318,7 +327,7 @@ fn prepare_particle_materials<M: Particle2dMaterial>(
     mut prepare_next_frame: Local<PrepareNextFrameParticleMaterials<M>>,
 
     render_device: Res<RenderDevice>,
-    images: Res<RenderAssets<Image>>,
+    images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
     pipeline: Res<Particle2dPipeline<M>>,
 ) {

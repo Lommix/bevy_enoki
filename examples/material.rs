@@ -18,7 +18,7 @@ fn main() {
         .add_plugins(Particle2dMaterialPlugin::<FireParticleMaterial>::default())
         .add_systems(Startup, setup)
         .add_systems(Update, show_fps)
-        .run()
+        .run();
 }
 
 #[derive(Component)]

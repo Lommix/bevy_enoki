@@ -72,9 +72,9 @@ impl Plugin for Particles2dPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
 
-        app.world
+        app.world_mut()
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
-            .insert(DEFAULT_MATERIAL, ColorParticle2dMaterial::default());
+            .insert(DEFAULT_MATERIAL.id(), ColorParticle2dMaterial::default());
 
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
