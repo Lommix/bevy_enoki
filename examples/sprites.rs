@@ -87,7 +87,6 @@ fn spawn_particles(
                 transform: Transform::from_xyz(x, y, index.0),
                 effect: server.load("firework.particle.ron"),
                 material: material.0.clone(),
-                // material: DEFAULT_MATERIAL,
                 ..default()
             },
             OneShot::Despawn,

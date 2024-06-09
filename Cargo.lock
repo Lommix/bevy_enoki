@@ -482,7 +482,6 @@ name = "bevy_enoki"
 version = "0.2.0"
 dependencies = [
  "bevy",
- "bytemuck",
  "interpolation",
  "rand",
  "ron",

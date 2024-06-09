@@ -1,3 +1,5 @@
+use crate::particles_2d::prelude::ParticleEffectInstance;
+
 use super::{update::Particle, ParticleStore};
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
@@ -37,7 +39,6 @@ use bevy::{
     sprite::{Mesh2dPipelineKey, WithSprite},
     utils::HashMap,
 };
-use bytemuck::{Pod, Zeroable};
 use std::{hash::Hash, ops::Range};
 
 /// Particle Material Trait
@@ -230,8 +231,9 @@ fn queue_particles<M: Particle2dMaterial>(
         let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
         for (entity, _) in extract_particles.particles.iter() {
+            //@todo: come up with a cleaner solution
             if visible_entities
-                .iter::<With<ParticleTag>>()
+                .iter::<With<ParticleEffectInstance>>()
                 .find(|e| e.index() == entity.index())
                 .is_none()
             {
@@ -280,7 +282,7 @@ impl From<&Particle> for InstanceData {
                     .z_axis
                     .extend(value.transform.translation.z),
             ],
-            color: value.color.linear().to_f32_array(),
+            color: value.color.to_f32_array(),
             custom: Vec4::new(
                 value.lifetime.fraction(),
                 value.lifetime.duration().as_secs_f32(),
@@ -452,7 +454,6 @@ impl<M: Particle2dMaterial> Default for ParticleMeta<M> {
 pub struct ParticleInstanceBatch {
     pub range: Range<u32>,
 }
-
 // ----------------------------------------------
 // pipeline
 

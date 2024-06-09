@@ -106,11 +106,11 @@ pub struct Particle2dEffect {
     pub angular_speed: Option<Rval<f32>>,
     pub angular_acceleration: Option<Rval<f32>>,
     pub scale: Option<Rval<f32>>,
-    pub color: Option<Color>,
+    pub color: Option<LinearRgba>,
     pub gravity_direction: Option<Rval<Vec2>>,
     pub gravity_speed: Option<Rval<f32>>,
     pub linear_damp: Option<Rval<f32>>,
     pub angular_damp: Option<Rval<f32>>,
     pub scale_curve: Option<Curve<f32>>,
-    pub color_curve: Option<Curve<Color>>,
+    pub color_curve: Option<Curve<LinearRgba>>,
 }
