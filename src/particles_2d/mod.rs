@@ -3,7 +3,14 @@ use self::prelude::{
     ParticleStore,
 };
 use crate::particles_2d::sprite::SpriteParticle2dMaterial;
-use bevy::{asset::load_internal_asset, prelude::*};
+use bevy::{
+    asset::load_internal_asset,
+    prelude::*,
+    render::{
+        primitives::Aabb,
+        view::{check_visibility, VisibilitySystems},
+    },
+};
 use color::ColorParticle2dMaterial;
 
 mod color;
@@ -72,9 +79,9 @@ impl Plugin for Particles2dPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
 
-        app.world
+        app.world_mut()
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
-            .insert(DEFAULT_MATERIAL, ColorParticle2dMaterial::default());
+            .insert(DEFAULT_MATERIAL.id(), ColorParticle2dMaterial::default());
 
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
@@ -96,7 +103,12 @@ impl Plugin for Particles2dPlugin {
 
         app.add_systems(
             PostUpdate,
-            update::update_spawner.after(bevy::render::view::VisibilitySystems::CheckVisibility),
+            (
+                check_visibility::<With<ParticleEffectInstance>>,
+                update::update_spawner,
+            )
+                .in_set(VisibilitySystems::CheckVisibility)
+                .chain(),
         );
     }
 }
@@ -121,6 +133,7 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     pub view_visibility: ViewVisibility,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub aabb: Aabb,
 }
 
 impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
@@ -136,6 +149,7 @@ impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
             global_transform: GlobalTransform::default(),
             view_visibility: ViewVisibility::default(),
             material: Default::default(),
+            aabb: Aabb::default(),
         }
     }
 }

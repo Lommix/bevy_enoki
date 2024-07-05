@@ -1,8 +1,8 @@
-workspace = { members = ["editor"] }
+# workspace = { members = ["editor"] }
 
 [package]
 name = "bevy_enoki"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "2D Particle system plugin, that works well in wasm"
@@ -20,22 +20,20 @@ opt-level = 3
 dev = ["bevy/file_watcher", "bevy/dynamic_linking", "bevy/embedded_watcher"]
 
 [dependencies]
-bevy = { version = "0.13.1", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_asset",
   "bevy_sprite",
   "png",
 ] }
 serde = { version = "1.0.197", features = ["derive"] }
-bytemuck = "1.15.0"
 interpolation = "0.3.0"
 rand = "0.8.5"
 ron = "0.8.1"
 
 [dev-dependencies]
-bevy = { version = "0.13.1", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_ui",
-  "multi-threaded",
   "wayland",
   "default_font",
 ] }

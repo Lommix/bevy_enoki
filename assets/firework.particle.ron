@@ -30,7 +30,7 @@
         Curve(
             points: [
                 (
-                    Rgba(
+					LinearRgba(
                         red: 2.0,
                         green: 2.0,
                         blue: 2.0,
@@ -40,7 +40,7 @@
                     None,
                 ),
                 (
-                    Rgba(
+                    LinearRgba(
                         red: 1.0,
                         green: 8.0,
                         blue: 0.0,
@@ -50,7 +50,7 @@
                     None,
                 ),
                 (
-                    Rgba(
+                    LinearRgba(
                         red: 3.0,
                         green: 0.0,
                         blue: 0.0,
@@ -60,7 +60,7 @@
                     None,
                 ),
                 (
-                    Rgba(
+                    LinearRgba(
                         red: 0.2,
                         green: 0.2,
                         blue: 0.2,
@@ -70,7 +70,7 @@
                     None,
                 ),
                 (
-                    Rgba(
+                    LinearRgba(
                         red: 0.5,
                         green: 0.5,
                         blue: 0.5,

@@ -25,6 +25,7 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
+| 0.14 |        0.2 |
 | 0.13 |        0.1 |
 
 ## Editor
@@ -181,23 +182,23 @@ pub struct Particle2dEffect {
     pub angular_speed: Option<Rval<f32>>,
     pub angular_acceleration: Option<Rval<f32>>,
     pub scale: Option<Rval<f32>>,
-    pub color: Option<Color>,
+    pub color: Option<LinearRgba>,
     pub gravity_direction: Option<Rval<Vec2>>,
     pub gravity_speed: Option<Rval<f32>>,
     pub linear_damp: Option<Rval<f32>>,
     pub angular_damp: Option<Rval<f32>>,
     pub scale_curve: Option<Curve<f32>>,
-    pub color_curve: Option<Curve<Color>>,
+    pub color_curve: Option<Curve<LinearRgba>>,
 }
 ```
 
-This how you create a `Curve`. Currently, Supports `Color` and `f32`.
+This how you create a `Curve`. Currently, Supports `LinearRgba` and `f32`.
 `RVal` stands for any Value with a randomness property between 0 - 1.
 
 ```rust
 let curve = Curve::new()
-    .with_point(Color::RED, 0.0, None)
-    .with_point(Color::BLUE, 1.0, Some(bevy_enoki::prelude::EaseFunction::SineInOut));
+    .with_point(LinearRgba::RED, 0.0, None)
+    .with_point(LinearRgba::BLUE, 1.0, Some(bevy_enoki::prelude::EaseFunction::SineInOut));
 
 // max 1.0, randomness of 0.1 (0.9 - 1.1)
 let rval = Rval::new(1.0, 0.1);

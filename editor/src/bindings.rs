@@ -26,7 +26,7 @@ impl Plugin for BindingPlugin {
 }
 
 fn startup(shaders: Res<Assets<Shader>>) {
-    let Some(shader) = shaders.get(super::SPRITE_SHADER) else {
+    let Some(shader) = shaders.get(&super::SPRITE_SHADER) else {
         return;
     };
 
@@ -103,7 +103,7 @@ fn update_shader_code(mut shaders: ResMut<Assets<Shader>>) {
         return;
     };
 
-    let Some(shader) = shaders.get_mut(SPRITE_SHADER) else {
+    let Some(shader) = shaders.get_mut(&SPRITE_SHADER) else {
         return;
     };
 
@@ -124,7 +124,7 @@ fn generate_url_event(query: Query<&ParticleEffectInstance>, shaders: Res<Assets
         return;
     }
 
-    let Some(shader) = shaders.get(SPRITE_SHADER) else {
+    let Some(shader) = shaders.get(&SPRITE_SHADER) else {
         return;
     };
 
