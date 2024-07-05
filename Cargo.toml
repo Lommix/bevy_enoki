@@ -24,9 +24,6 @@ bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_asset",
   "bevy_sprite",
-  "bevy_pbr",
-  "ktx2",
-  "zstd",
   "png",
 ] }
 serde = { version = "1.0.197", features = ["derive"] }
@@ -35,7 +32,7 @@ rand = "0.8.5"
 ron = "0.8.1"
 
 [dev-dependencies]
-bevy = { version = "0.14.0-rc.2", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_ui",
   "wayland",
   "default_font",
