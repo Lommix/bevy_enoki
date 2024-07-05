@@ -169,11 +169,9 @@ pub(crate) fn config_gui(
             curve_field_color(ui, color_curve);
         } else {
             if ui.button("Add Color Curve").clicked() {
-                let curve = Curve::new().with_point(Color::WHITE, 0.0, None).with_point(
-                    Color::WHITE,
-                    1.0,
-                    None,
-                );
+                let curve = Curve::new()
+                    .with_point(LinearRgba::WHITE, 0.0, None)
+                    .with_point(LinearRgba::WHITE, 1.0, None);
                 effect.color_curve = Some(curve);
             }
         }
@@ -269,7 +267,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut Curve<f32>) {
     }
 }
 
-fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
+fn curve_field_color(ui: &mut Ui, curve: &mut Curve<LinearRgba>) {
     let mut remove = Vec::new();
     curve
         .points
@@ -280,7 +278,7 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
                 ui.label("value");
 
                 let mut rgba =
-                    egui::Rgba::from_rgba_premultiplied(val.r(), val.g(), val.b(), val.a());
+                    egui::Rgba::from_rgba_premultiplied(val.red, val.green, val.blue, val.alpha);
 
                 egui::color_picker::color_edit_button_rgba(
                     ui,
@@ -288,10 +286,10 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
                     egui::color_picker::Alpha::Opaque,
                 );
 
-                val.set_r(rgba.r());
-                val.set_g(rgba.g());
-                val.set_b(rgba.b());
-                val.set_a(rgba.a());
+                val.red = rgba.r();
+                val.green = rgba.g();
+                val.blue = rgba.b();
+                val.alpha = rgba.a();
 
                 if ui.button("Delete").clicked() {
                     remove.push(i);
@@ -313,7 +311,7 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<Color>) {
     curve.sort();
 
     if ui.button("Add Point").clicked() {
-        curve.points.push((Color::WHITE, 1.0, None));
+        curve.points.push((LinearRgba::WHITE, 1.0, None));
     }
 }
 

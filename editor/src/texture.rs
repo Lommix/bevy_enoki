@@ -36,7 +36,7 @@ fn incoming_image(
         return;
     };
 
-    images.insert(IMAGE_HANDLE, image);
+    images.insert(&IMAGE_HANDLE, image);
     materials
         .iter_mut()
         .for_each(|(_, mat)| mat.texture = Some(IMAGE_HANDLE));

@@ -1,7 +1,7 @@
 use super::{prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
 use bevy::prelude::*;
-use std::time::Duration;
+use std::{collections::VecDeque, time::Duration};
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
@@ -36,7 +36,7 @@ impl Default for ParticleSpawnerState {
 }
 
 /// Component for storing particle data
-#[derive(Component, Default, Clone, Reflect, Deref)]
+#[derive(Component, Default, Clone, Reflect, Deref, DerefMut)]
 pub struct ParticleStore(pub Vec<Particle>);
 
 #[derive(Clone, Reflect)]
@@ -85,6 +85,7 @@ pub(crate) fn remove_finished_spawner(
         })
 }
 
+
 pub(crate) fn update_spawner(
     mut particles: Query<(
         Entity,
@@ -120,7 +121,7 @@ pub(crate) fn update_spawner(
 
             if state.timer.finished() && state.active {
                 for _ in 0..effect.spawn_amount {
-                    store.0.push(create_particle(&effect, &transform))
+                    store.push(create_particle(&effect, &transform))
                 }
 
                 if one_shots.get(entity).is_ok() {
@@ -128,7 +129,7 @@ pub(crate) fn update_spawner(
                 }
             }
 
-            store.0.retain_mut(|particle| {
+            store.retain_mut(|particle| {
                 update_particle(particle, &effect, time.delta_seconds());
                 particle.lifetime.tick(time.delta());
                 !particle.lifetime.finished()

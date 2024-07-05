@@ -1,6 +1,6 @@
 use crate::particles_2d::prelude::ParticleEffectInstance;
 
-use super::{update::Particle, ParticleStore};
+use super::{prelude::Particle2dEffect, update::Particle, ParticleStore};
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
     ecs::{
@@ -110,6 +110,7 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
         render_app.insert_resource(particle_buffer);
     }
 }
+
 
 // ----------------------------------------------
 // extract
