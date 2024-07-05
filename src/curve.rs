@@ -146,7 +146,10 @@ impl LerpThat<f32> for f32 {
 
 impl LerpThat<Color> for Color {
     fn lerp_that(self, right: Color, val: f32) -> Color {
-        let out = self.linear().to_vec4().lerp(right.linear().to_vec4(), val);
+        let out = self
+            .to_linear()
+            .to_vec4()
+            .lerp(right.to_linear().to_vec4(), val);
         Color::linear_rgba(out.x, out.y, out.z, out.w)
     }
 }

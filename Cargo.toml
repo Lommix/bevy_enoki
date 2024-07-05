@@ -20,7 +20,7 @@ opt-level = 3
 dev = ["bevy/file_watcher", "bevy/dynamic_linking", "bevy/embedded_watcher"]
 
 [dependencies]
-bevy = { version = "0.14.0-rc.2", default-features = false, features = [
+bevy = { version = "0.14.0", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_asset",
   "bevy_sprite",

@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    render::render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderType},
+    render::render_resource::{AsBindGroup, ShaderType},
 };
 
 use super::{prelude::Particle2dMaterial, PARTICLE_COLOR_FRAG};
