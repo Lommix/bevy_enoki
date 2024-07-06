@@ -1,11 +1,9 @@
 use base64::Engine;
 use bevy::{
-    core_pipeline::bloom::BloomSettings,
-    input::mouse::MouseWheel,
-    prelude::*,
-    render::render_resource::{AsBindGroup, Source},
+    core_pipeline::bloom::BloomSettings, input::mouse::MouseWheel, prelude::*,
+    render::render_resource::AsBindGroup,
 };
-use bevy_egui::egui::{self, Color32, Ui};
+pub(crate) use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
 use file::FileResource;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -66,14 +64,14 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
             .into(),
         };
 
-        app.world
+        app.world_mut()
             .resource_mut::<Assets<Shader>>()
-            .insert(SPRITE_SHADER, Shader::from_wgsl(shader_content, ""));
+            .insert(&SPRITE_SHADER, Shader::from_wgsl(shader_content, ""));
 
         let effect_handle = match self.0.as_ref() {
             Some(config) => {
                 let handle = app
-                    .world
+                    .world_mut()
                     .resource_mut::<Assets<Particle2dEffect>>()
                     .add(config.effect.clone());
                 handle
@@ -81,18 +79,18 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
             None => {
                 let fireworks = include_str!("../../assets/firework.particle.ron");
                 let effect: Particle2dEffect = ron::de::from_str(fireworks).unwrap();
-                app.world
+                app.world_mut()
                     .resource_mut::<Assets<Particle2dEffect>>()
                     .add(effect)
             }
         };
 
         let material_handle = app
-            .world
+            .world_mut()
             .resource_mut::<Assets<SpriteMaterial>>()
             .add(SpriteMaterial { texture: None });
 
-        app.world.spawn(ParticleSpawnerBundle {
+        app.world_mut().spawn(ParticleSpawnerBundle {
             material: material_handle,
             effect: effect_handle,
             ..default()
@@ -150,7 +148,7 @@ fn gui(
     };
 
     egui::Window::new("Particle Config")
-        .scroll2([false, true])
+        .scroll([false, true])
         .show(context.ctx_mut(), |ui| {
             file::file_panel(ui, &mut effect_instance, &mut file);
             egui::Grid::new("one_shot")
@@ -183,7 +181,7 @@ fn gui(
 
                             let mut color32 = match camera.clear_color {
                                 ClearColorConfig::Custom(color) => bevy_to_egui_color(color),
-                                _ => bevy_to_egui_color(Color::DARK_GRAY),
+                                _ => bevy_to_egui_color(Color::LinearRgba(LinearRgba::GREEN)),
                             };
                             egui::color_picker::color_edit_button_srgba(
                                 ui,
@@ -233,12 +231,12 @@ fn gui(
 }
 
 pub(crate) fn bevy_to_egui_color(color: Color) -> Color32 {
-    let s = color.as_rgba_u8();
+    let s = color.to_linear().to_u8_array();
     Color32::from_rgba_unmultiplied(s[0], s[1], s[2], s[3])
 }
 
 pub(crate) fn egui_to_bevy_color(color: Color32) -> Color {
-    Color::rgba_from_array(color.to_normalized_gamma_f32())
+    Color::LinearRgba(LinearRgba::from_f32_array(color.to_normalized_gamma_f32()))
 }
 
 #[derive(AsBindGroup, Default, Clone, Asset, TypePath)]
