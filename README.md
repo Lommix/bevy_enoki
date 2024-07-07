@@ -25,7 +25,7 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
-| 0.14 |        0.2 |
+| 0.14 |      0.2.1 |
 | 0.13 |        0.1 |
 
 ## Editor
