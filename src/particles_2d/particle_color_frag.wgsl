@@ -4,6 +4,5 @@
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    //return in.color * color;
-	return vec4(1.);
+	return in.color * color;
 }
