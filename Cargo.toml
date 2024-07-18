@@ -2,7 +2,7 @@
 
 [package]
 name = "bevy_enoki"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "2D Particle system plugin, that works well in wasm"

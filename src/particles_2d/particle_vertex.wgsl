@@ -22,7 +22,7 @@ fn vertex(in: VertexIn) -> VertexOutput {
         0.0
     );
 
-    out.clip_position = view.clip_from_view * affine3_to_square(mat3x4<f32>(
+    out.clip_position = view.clip_from_world * affine3_to_square(mat3x4<f32>(
         in.i_translation,
         in.i_rotation,
         in.i_scale,
