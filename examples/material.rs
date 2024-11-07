@@ -3,7 +3,7 @@
 /// how to add a custom material
 /// ----------------------------------------------
 use bevy::{
-    core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*,
+    core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, prelude::*,
     render::render_resource::AsBindGroup,
 };
 use bevy_enoki::{prelude::*, EnokiPlugin};
@@ -30,16 +30,13 @@ fn setup(
     server: Res<AssetServer>,
 ) {
     cmd.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::BLACK),
-                hdr: true,
-                ..default()
-            },
-
+        Camera2d,
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            hdr: true,
             ..default()
         },
-        BloomSettings {
+        Bloom {
             intensity: 0.1,
             ..default()
         },
@@ -49,12 +46,20 @@ fn setup(
         texture: server.load("noise.png"),
     });
 
-    cmd.spawn((TextBundle::default(), FpsText));
+    cmd.spawn((
+        Text::default(),
+        TextFont {
+            font_size: 42.,
+            ..default()
+        },
+        FpsText,
+    ));
+
     cmd.spawn((ParticleSpawnerBundle {
         transform: Transform::default(),
-        effect: server.load("ice.particle.ron"),
+        effect: server.load("ice.particle.ron").into(),
         // material: DEFAULT_MATERIAL,
-        material,
+        material: material.into(),
         ..default()
     },));
 }
@@ -78,15 +83,7 @@ fn show_fps(
         return;
     };
 
-    text.sections = vec![TextSection::new(
-        format!("FPS: {:.1} Particles: {}", fps, particle_count),
-        TextStyle {
-            font_size: 45.,
-            color: Color::WHITE,
-            ..default()
-        },
-    )]
-    // info!(fps);
+    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
 }
 
 #[derive(AsBindGroup, Asset, TypePath, Clone, Default)]

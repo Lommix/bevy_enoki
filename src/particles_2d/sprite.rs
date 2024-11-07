@@ -1,6 +1,6 @@
 use super::{Particle2dMaterial, PARTICLE_SPRITE_FRAG};
 use bevy::{
-    asset::{AssetLoadError, AssetLoader, AsyncReadExt},
+    asset::{io::Reader, AssetLoadError, AssetLoader, AsyncReadExt},
     prelude::*,
     render::render_resource::AsBindGroup,
 };
@@ -55,23 +55,21 @@ impl AssetLoader for ColorParticle2dAssetLoader {
     type Settings = ();
     type Error = AssetLoadError;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut bevy::asset::io::Reader,
-        _settings: &'a Self::Settings,
-        load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await.unwrap();
-            let ron_asset = ron::de::from_bytes::<SpriteParticle2dRon>(bytes.as_slice())
-                .map_err(|_| AssetLoadError::AssetMetaReadError)?;
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut bevy::asset::LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await.unwrap();
+        let ron_asset = ron::de::from_bytes::<SpriteParticle2dRon>(bytes.as_slice())
+            .map_err(|_| AssetLoadError::AssetMetaReadError)?;
 
-            Ok(SpriteParticle2dMaterial::new(
-                load_context.load(ron_asset.image),
-                ron_asset.h_frames,
-                ron_asset.v_frames,
-            ))
-        })
+        Ok(SpriteParticle2dMaterial::new(
+            load_context.load(ron_asset.image),
+            ron_asset.h_frames,
+            ron_asset.v_frames,
+        ))
     }
 }

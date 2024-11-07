@@ -12,6 +12,7 @@ use bevy::{
     },
 };
 use color::ColorParticle2dMaterial;
+use loader::EffectHandle;
 
 mod color;
 mod loader;
@@ -22,11 +23,11 @@ mod update;
 #[allow(unused)]
 pub mod prelude {
     pub use super::color::ColorParticle2dMaterial;
-    pub use super::loader::{EmissionShape, Particle2dEffect, ParticleEffectLoader};
+    pub use super::loader::{EffectHandle, EmissionShape, Particle2dEffect, ParticleEffectLoader};
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
-    pub use super::{ParticleSpawnerBundle, DEFAULT_MATERIAL};
+    pub use super::{MaterialHandle, ParticleSpawnerBundle, DEFAULT_MATERIAL};
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -78,6 +79,7 @@ impl Plugin for Particles2dPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
+        app.register_type::<loader::EffectHandle>();
 
         app.world_mut()
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
@@ -89,7 +91,7 @@ impl Plugin for Particles2dPlugin {
 
         app.add_systems(
             First,
-            loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>()),
+            loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>),
         );
 
         app.add_systems(
@@ -119,7 +121,7 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     /// holds the spawner state
     pub state: ParticleSpawnerState,
     /// particle effect handle
-    pub effect: Handle<Particle2dEffect>,
+    pub effect: EffectHandle,
     /// the spawners unique effect value,
     /// these can be modified at runtime,
     /// hot reloading the asset resets them to the original state
@@ -127,7 +129,7 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     /// hold the particle data
     pub particle_store: ParticleStore,
     /// provided particle material
-    pub material: Handle<M>,
+    pub material: MaterialHandle<M>,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
@@ -136,11 +138,20 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     pub aabb: Aabb,
 }
 
+#[derive(Component, DerefMut, Deref, Default, Clone)]
+pub struct MaterialHandle<T: Asset>(pub Handle<T>);
+
+impl<T: Asset> From<Handle<T>> for MaterialHandle<T> {
+    fn from(value: Handle<T>) -> Self {
+        Self(value)
+    }
+}
+
 impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
     fn default() -> Self {
         Self {
             state: ParticleSpawnerState::default(),
-            effect: Handle::default(),
+            effect: EffectHandle::default(),
             effect_instance: ParticleEffectInstance::default(),
             particle_store: ParticleStore::default(),
             visibility: Visibility::default(),
@@ -148,7 +159,7 @@ impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
             transform: Transform::default(),
             global_transform: GlobalTransform::default(),
             view_visibility: ViewVisibility::default(),
-            material: Default::default(),
+            material: MaterialHandle::default(),
             aabb: Aabb::default(),
         }
     }

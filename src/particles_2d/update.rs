@@ -1,4 +1,4 @@
-use super::{prelude::EmissionShape, Particle2dEffect};
+use super::{loader::EffectHandle, prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
 use bevy::prelude::*;
 use std::{collections::VecDeque, time::Duration};
@@ -56,7 +56,7 @@ pub struct Particle {
 
 pub(crate) fn clone_effect(
     mut particle_spawners: Query<
-        (&mut ParticleEffectInstance, &Handle<Particle2dEffect>),
+        (&mut ParticleEffectInstance, &EffectHandle),
         Added<ParticleSpawnerState>,
     >,
     effects: Res<Assets<Particle2dEffect>>,
@@ -64,7 +64,7 @@ pub(crate) fn clone_effect(
     particle_spawners
         .iter_mut()
         .for_each(|(mut effect_overwrites, handle)| {
-            let Some(effect) = effects.get(handle) else {
+            let Some(effect) = effects.get(&handle.0) else {
                 return;
             };
 
@@ -84,7 +84,6 @@ pub(crate) fn remove_finished_spawner(
             }
         })
 }
-
 
 pub(crate) fn update_spawner(
     mut particles: Query<(
@@ -130,7 +129,7 @@ pub(crate) fn update_spawner(
             }
 
             store.retain_mut(|particle| {
-                update_particle(particle, &effect, time.delta_seconds());
+                update_particle(particle, &effect, time.delta_secs());
                 particle.lifetime.tick(time.delta());
                 !particle.lifetime.finished()
             });

@@ -1,18 +1,27 @@
-use std::collections::VecDeque;
-
-use super::{prelude::Particle2dMaterial, ParticleEffectInstance};
+use super::ParticleEffectInstance;
 use crate::{curve::Curve, values::Rval};
 use bevy::{
-    asset::{AssetLoadError, AssetLoader, AsyncReadExt},
+    asset::{io::Reader, AssetLoadError, AssetLoader, LoadContext},
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Default, Clone, Debug, Serialize)]
+#[derive(Deserialize, Reflect, Default, Clone, Debug, Serialize)]
+#[reflect]
 pub enum EmissionShape {
     #[default]
     Point,
     Circle(f32),
+}
+
+#[derive(Component, Reflect, Deref, DerefMut, Default)]
+#[reflect]
+pub struct EffectHandle(pub Handle<Particle2dEffect>);
+
+impl From<Handle<Particle2dEffect>> for EffectHandle {
+    fn from(value: Handle<Particle2dEffect>) -> Self {
+        Self(value)
+    }
 }
 
 /// The particle effect asset
@@ -44,32 +53,30 @@ impl AssetLoader for ParticleEffectLoader {
     type Settings = ();
     type Error = AssetLoadError;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut bevy::asset::io::Reader,
-        _settings: &'a Self::Settings,
-        _load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await.unwrap();
-            let mut asset = ron::de::from_bytes::<Self::Asset>(bytes.as_slice())
-                .map_err(|_| AssetLoadError::AssetMetaReadError)?;
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await.unwrap();
+        let mut asset = ron::de::from_bytes::<Self::Asset>(bytes.as_slice())
+            .map_err(|_| AssetLoadError::AssetMetaReadError)?;
 
-            if let Some(curve) = asset.scale_curve.as_mut() {
-                curve.sort();
-            }
+        if let Some(curve) = asset.scale_curve.as_mut() {
+            curve.sort();
+        }
 
-            if let Some(curve) = asset.color_curve.as_mut() {
-                curve.sort();
-            }
+        if let Some(curve) = asset.color_curve.as_mut() {
+            curve.sort();
+        }
 
-            Ok(asset)
-        })
+        Ok(asset)
     }
 
     fn extensions(&self) -> &[&str] {
-        &["particle.ron"]
+        &["ron"]
     }
 }
 
@@ -79,7 +86,7 @@ pub struct ReloadEffectTag;
 pub(crate) fn on_asset_loaded(
     mut cmd: Commands,
     mut events: EventReader<AssetEvent<Particle2dEffect>>,
-    spawners: Query<(Entity, &Handle<Particle2dEffect>)>,
+    spawners: Query<(Entity, &EffectHandle)>,
 ) {
     events.read().for_each(|event| {
         let assset_id = match event {
@@ -103,11 +110,7 @@ pub(crate) fn on_asset_loaded(
 pub(crate) fn reload_effect(
     mut cmd: Commands,
     mut effect_owner: Query<
-        (
-            Entity,
-            &mut ParticleEffectInstance,
-            &Handle<Particle2dEffect>,
-        ),
+        (Entity, &mut ParticleEffectInstance, &EffectHandle),
         With<ReloadEffectTag>,
     >,
     effects: Res<Assets<Particle2dEffect>>,
@@ -115,7 +118,7 @@ pub(crate) fn reload_effect(
     effect_owner
         .iter_mut()
         .for_each(|(entity, mut owner, handle)| {
-            let Some(effect) = effects.get(handle) else {
+            let Some(effect) = effects.get(&handle.0) else {
                 return;
             };
             owner.0 = Some(Box::new(effect.clone()));

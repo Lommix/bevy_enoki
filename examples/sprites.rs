@@ -2,7 +2,11 @@
 /// sprite example
 /// how to display a sprite animation/texture
 /// ----------------------------------------------
-use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
+use bevy::{
+    core_pipeline::bloom::{Bloom, BloomSettings},
+    diagnostic::DiagnosticsStore,
+    prelude::*,
+};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
 
@@ -36,16 +40,13 @@ fn setup(
     server: Res<AssetServer>,
 ) {
     cmd.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::BLACK),
-                hdr: true,
-                ..default()
-            },
-
+        Camera2d,
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            hdr: true,
             ..default()
         },
-        BloomSettings {
+        Bloom {
             intensity: 0.1,
             ..default()
         },
@@ -56,7 +57,14 @@ fn setup(
         Pcindex(0.),
     ));
 
-    cmd.spawn((TextBundle::default(), FpsText));
+    cmd.spawn((
+        Text::default(),
+        TextFont {
+            font_size: 42.,
+            ..default()
+        },
+        FpsText,
+    ));
     cmd.insert_resource(ParticleMaterialAsset(materials.add(
         SpriteParticle2dMaterial::new(server.load("particle.png"), 6, 1),
     )));
@@ -85,8 +93,8 @@ fn spawn_particles(
         cmd.spawn((
             ParticleSpawnerBundle {
                 transform: Transform::from_xyz(x, y, index.0),
-                effect: server.load("firework.particle.ron"),
-                material: material.0.clone(),
+                effect: server.load("firework.particle.ron").into(),
+                material: material.0.clone().into(),
                 ..default()
             },
             OneShot::Despawn,
@@ -115,13 +123,5 @@ fn show_fps(
         return;
     };
 
-    text.sections = vec![TextSection::new(
-        format!("FPS: {:.1} Particles: {}", fps, particle_count),
-        TextStyle {
-            font_size: 45.,
-            color: Color::WHITE,
-            ..default()
-        },
-    )]
-    // info!(fps);
+    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
 }

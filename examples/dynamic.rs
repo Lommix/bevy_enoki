@@ -2,7 +2,11 @@
 /// dynamic example
 /// how to update effect behavior dynamiclly
 /// ----------------------------------------------
-use bevy::{core_pipeline::bloom::BloomSettings, diagnostic::DiagnosticsStore, prelude::*};
+use bevy::{
+    core_pipeline::bloom::{Bloom, BloomSettings},
+    diagnostic::DiagnosticsStore,
+    prelude::*,
+};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
 
@@ -36,16 +40,13 @@ fn setup(
     server: Res<AssetServer>,
 ) {
     cmd.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::BLACK),
-                hdr: true,
-                ..default()
-            },
-
+        Camera2d,
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            hdr: true,
             ..default()
         },
-        BloomSettings {
+        Bloom {
             intensity: 0.1,
             ..default()
         },
@@ -56,15 +57,24 @@ fn setup(
         Pcindex(0.),
     ));
 
-    cmd.spawn((TextBundle::default(), FpsText));
+    cmd.spawn((
+        Text::default(),
+        TextFont {
+            font_size: 42.,
+            ..default()
+        },
+        FpsText,
+    ));
 
     cmd.spawn((ParticleSpawnerBundle {
-        effect: server.load("base.particle.ron"),
-        material: materials.add(SpriteParticle2dMaterial::new(
-            server.load("enoki.png"),
-            1,
-            1,
-        )),
+        effect: server.load("base.particle.ron").into(),
+        material: materials
+            .add(SpriteParticle2dMaterial::new(
+                server.load("enoki.png"),
+                1,
+                1,
+            ))
+            .into(),
         ..default()
     },));
 }
@@ -74,7 +84,7 @@ fn change_dynamic(
     mut query: Query<&mut ParticleEffectInstance>,
     time: Res<Time>,
 ) {
-    *elapsed += time.delta_seconds();
+    *elapsed += time.delta_secs();
 
     let Ok(mut maybe_effect) = query.get_single_mut() else {
         return;
@@ -105,13 +115,5 @@ fn show_fps(
         return;
     };
 
-    text.sections = vec![TextSection::new(
-        format!("FPS: {:.1} Particles: {}", fps, particle_count),
-        TextStyle {
-            font_size: 45.,
-            color: Color::WHITE,
-            ..default()
-        },
-    )]
-    // info!(fps);
+    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
 }
