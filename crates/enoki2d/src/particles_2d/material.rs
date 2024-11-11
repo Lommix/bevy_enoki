@@ -31,7 +31,7 @@ use bevy::{
             VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
-        sync_world::MainEntity,
+        sync_world::{MainEntity, RenderEntity},
         texture::BevyDefault,
         view::{
             ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
@@ -170,17 +170,17 @@ fn extract_particles<M: Particle2dMaterial>(
     mut render_material_instances: ResMut<RenderParticleMaterials<M>>,
     query: Extract<
         Query<(
-            Entity,
             &ParticleStore,
             &GlobalTransform,
             &MaterialHandle<M>,
             &ViewVisibility,
+            &RenderEntity,
         )>,
     >,
 ) {
     extraced_batches.particles.clear();
     query.iter().for_each(|emitter| {
-        let (entity, particle_store, global, material_handle, visbility) = emitter;
+        let (particle_store, global, material_handle, visbility, render_entity) = emitter;
         if !visbility.get() || particle_store.len() == 0 {
             return;
         }
@@ -190,16 +190,13 @@ fn extract_particles<M: Particle2dMaterial>(
             .map(|particle| InstanceData::from(particle))
             .collect::<Vec<_>>();
 
-        let render_entity = cmd
-            .spawn((
-                ZOrder(FloatOrd(global.translation().z)),
-                ParticleTag,
-                MainEntity::from(entity),
-            ))
-            .id();
+        cmd.entity(**render_entity)
+            .insert((ZOrder(FloatOrd(global.translation().z)), ParticleTag));
 
-        render_material_instances.insert(render_entity, material_handle.id());
-        extraced_batches.particles.insert(render_entity, particles);
+        render_material_instances.insert(**render_entity, material_handle.id());
+        extraced_batches
+            .particles
+            .insert(**render_entity, particles);
     });
 }
 

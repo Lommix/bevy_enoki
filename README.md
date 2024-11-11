@@ -25,21 +25,23 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
-| 0.15 |  main(wip) |
+| 0.15 |       main |
 | 0.14 |      0.2.2 |
 | 0.13 |        0.1 |
 
 ## Editor
 
-Check out the new Web based particle editor at [Enoki Particle Editor](https://lommix.com/wasm/particle/index.html).
-Easily adjust your effects by importing and exporting the Ron configuration.
+[WIP]
+
+---
+
 
 ## Examples
 
 ```shell
-cargo run --example material
-cargo run --example sprites
-cargo run --example dynamic
+cargo run -p example --bin material
+cargo run -p example --bin sprites
+cargo run -p example --bin dynamic
 ```
 
 ## Usage
@@ -47,7 +49,7 @@ cargo run --example dynamic
 Add the `bevy_enoki` dependency to your `Cargo.toml`
 
 ```toml
-bevy_enoki = "0.1"
+bevy_enoki = "0.2.2"
 ```
 
 Add the `EnokiPlugin` to your app

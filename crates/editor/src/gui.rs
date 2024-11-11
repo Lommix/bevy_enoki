@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use bevy::prelude::*;
 use bevy_egui::egui::{self, Ui, WidgetText};
 use bevy_enoki::prelude::*;
@@ -156,7 +158,7 @@ pub(crate) fn config_gui(
             }
 
             if ui.button("Add Scale Curve").clicked() {
-                let curve = Curve::new()
+                let curve = bevy_enoki::prelude::Curve::new()
                     .with_point(1.0, 0.0, None)
                     .with_point(1.0, 1.0, None);
                 effect.scale_curve = Some(curve);
@@ -169,7 +171,7 @@ pub(crate) fn config_gui(
             curve_field_color(ui, color_curve);
         } else {
             if ui.button("Add Color Curve").clicked() {
-                let curve = Curve::new()
+                let curve = bevy_enoki::prelude::Curve::new()
                     .with_point(LinearRgba::WHITE, 0.0, None)
                     .with_point(LinearRgba::WHITE, 1.0, None);
                 effect.color_curve = Some(curve);
@@ -214,25 +216,24 @@ fn rval_vec2_field(ui: &mut Ui, label: &str, field: &mut Rval<Vec2>) {
         });
 }
 
-fn curve_field_f32(ui: &mut Ui, curve: &mut Curve<f32>) {
-    let sin: PlotPoints = (0..100)
-        .map(|i| {
-            let x = i as f64 * 0.01;
-            let y = curve.lerp(x as f32);
-            [x, y as f64]
-        })
-        .collect();
-
-    let line = Line::new(sin);
-    egui_plot::Plot::new("curve_f32")
-        .height(100.)
-        .allow_drag(false)
-        .allow_double_click_reset(false)
-        .allow_zoom(false)
-        .allow_scroll(false)
-        .show(ui, |ui| {
-            ui.line(line);
-        });
+fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::Curve<f32>) {
+    // let sin: PlotPoints = (0..100)
+    //     .map(|i| {
+    //         let x = i as f64 * 0.01;
+    //         let y = curve.lerp(x as f32);
+    //         [x, y as f64]
+    //     })
+    //     .collect();
+    // let line = Line::new(sin);
+    // egui_plot::Plot::new("curve_f32")
+    //     .height(100.)
+    //     .allow_drag(false)
+    //     .allow_double_click_reset(false)
+    //     .allow_zoom(false)
+    //     .allow_scroll(false)
+    //     .show(ui, |ui| {
+    //         ui.line(line);
+    //     });
 
     let mut remove = Vec::new();
     curve
@@ -267,7 +268,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut Curve<f32>) {
     }
 }
 
-fn curve_field_color(ui: &mut Ui, curve: &mut Curve<LinearRgba>) {
+fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::Curve<LinearRgba>) {
     let mut remove = Vec::new();
     curve
         .points
@@ -315,45 +316,169 @@ fn curve_field_color(ui: &mut Ui, curve: &mut Curve<LinearRgba>) {
     }
 }
 
-fn easing_select(ui: &mut Ui, id: impl std::hash::Hash, easing: &mut Option<EaseFunction>) {
+fn easing_select(
+    ui: &mut Ui,
+    id: impl std::hash::Hash,
+    easing: &mut Option<bevy_enoki::prelude::EaseFunction>,
+) {
     egui::ComboBox::new(id, "")
         .selected_text(ron::ser::to_string(easing).unwrap())
         .show_ui(ui, |ui| {
             ui.selectable_value(easing, None, "None");
-            ui.selectable_value(easing, Some(EaseFunction::QuarticIn), "QuarticIn");
-            ui.selectable_value(easing, Some(EaseFunction::QuadraticIn), "QuadraticIn");
-            ui.selectable_value(easing, Some(EaseFunction::QuadraticOut), "QuadraticOut");
-            ui.selectable_value(easing, Some(EaseFunction::QuadraticInOut), "QuadraticInOut");
-            ui.selectable_value(easing, Some(EaseFunction::CubicIn), "CubicIn");
-            ui.selectable_value(easing, Some(EaseFunction::CubicOut), "CubicOut");
-            ui.selectable_value(easing, Some(EaseFunction::CubicInOut), "CubicInOut");
-            ui.selectable_value(easing, Some(EaseFunction::QuarticIn), "QuarticIn");
-            ui.selectable_value(easing, Some(EaseFunction::QuarticOut), "QuarticOut");
-            ui.selectable_value(easing, Some(EaseFunction::QuarticInOut), "QuarticInOut");
-            ui.selectable_value(easing, Some(EaseFunction::QuinticIn), "QuinticIn");
-            ui.selectable_value(easing, Some(EaseFunction::QuinticOut), "QuinticOut");
-            ui.selectable_value(easing, Some(EaseFunction::QuinticInOut), "QuinticInOut");
-            ui.selectable_value(easing, Some(EaseFunction::SineIn), "SineIn");
-            ui.selectable_value(easing, Some(EaseFunction::SineOut), "SineOut");
-            ui.selectable_value(easing, Some(EaseFunction::SineInOut), "SineInOut");
-            ui.selectable_value(easing, Some(EaseFunction::CircularIn), "CircularIn");
-            ui.selectable_value(easing, Some(EaseFunction::CircularOut), "CircularOut");
-            ui.selectable_value(easing, Some(EaseFunction::CircularInOut), "CircularInOut");
-            ui.selectable_value(easing, Some(EaseFunction::ExponentialIn), "ExponentialIn");
-            ui.selectable_value(easing, Some(EaseFunction::ExponentialOut), "ExponentialOut");
             ui.selectable_value(
                 easing,
-                Some(EaseFunction::ExponentialInOut),
+                Some(bevy_enoki::prelude::EaseFunction::QuarticIn),
+                "QuarticIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuadraticIn),
+                "QuadraticIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuadraticOut),
+                "QuadraticOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuadraticInOut),
+                "QuadraticInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CubicIn),
+                "CubicIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CubicOut),
+                "CubicOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CubicInOut),
+                "CubicInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuarticIn),
+                "QuarticIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuarticOut),
+                "QuarticOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuarticInOut),
+                "QuarticInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuinticIn),
+                "QuinticIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuinticOut),
+                "QuinticOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::QuinticInOut),
+                "QuinticInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::SineIn),
+                "SineIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::SineOut),
+                "SineOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::SineInOut),
+                "SineInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CircularIn),
+                "CircularIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CircularOut),
+                "CircularOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::CircularInOut),
+                "CircularInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ExponentialIn),
+                "ExponentialIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ExponentialOut),
+                "ExponentialOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ExponentialInOut),
                 "ExponentialInOut",
             );
-            ui.selectable_value(easing, Some(EaseFunction::ElasticIn), "ElasticIn");
-            ui.selectable_value(easing, Some(EaseFunction::ElasticOut), "ElasticOut");
-            ui.selectable_value(easing, Some(EaseFunction::ElasticInOut), "ElasticInOut");
-            ui.selectable_value(easing, Some(EaseFunction::BackIn), "BackIn");
-            ui.selectable_value(easing, Some(EaseFunction::BackOut), "BackOut");
-            ui.selectable_value(easing, Some(EaseFunction::BackInOut), "BackInOut");
-            ui.selectable_value(easing, Some(EaseFunction::BounceIn), "BounceIn");
-            ui.selectable_value(easing, Some(EaseFunction::BounceOut), "BounceOut");
-            ui.selectable_value(easing, Some(EaseFunction::BounceInOut), "BounceInOut");
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ElasticIn),
+                "ElasticIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ElasticOut),
+                "ElasticOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::ElasticInOut),
+                "ElasticInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BackIn),
+                "BackIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BackOut),
+                "BackOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BackInOut),
+                "BackInOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BounceIn),
+                "BounceIn",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BounceOut),
+                "BounceOut",
+            );
+            ui.selectable_value(
+                easing,
+                Some(bevy_enoki::prelude::EaseFunction::BounceInOut),
+                "BounceInOut",
+            );
         });
 }

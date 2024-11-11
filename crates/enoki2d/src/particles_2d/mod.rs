@@ -7,8 +7,7 @@ use bevy::{
     asset::load_internal_asset,
     prelude::*,
     render::{
-        primitives::Aabb,
-        view::{check_visibility, VisibilitySystems},
+        primitives::Aabb, sync_world::SyncToRenderWorld, view::{check_visibility, VisibilitySystems}
     },
 };
 use color::ColorParticle2dMaterial;
@@ -136,6 +135,7 @@ pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub aabb: Aabb,
+    pub sync: SyncToRenderWorld,
 }
 
 #[derive(Component, DerefMut, Deref, Default, Clone)]
@@ -161,6 +161,7 @@ impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
             view_visibility: ViewVisibility::default(),
             material: MaterialHandle::default(),
             aabb: Aabb::default(),
+            sync: Default::default(),
         }
     }
 }

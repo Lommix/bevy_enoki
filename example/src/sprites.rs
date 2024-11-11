@@ -2,11 +2,7 @@
 /// sprite example
 /// how to display a sprite animation/texture
 /// ----------------------------------------------
-use bevy::{
-    core_pipeline::bloom::{Bloom, BloomSettings},
-    diagnostic::DiagnosticsStore,
-    prelude::*,
-};
+use bevy::{core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
 

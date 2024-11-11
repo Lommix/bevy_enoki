@@ -1,0 +1,21 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.15.0-rc.3"
+bevy_enoki = { path = "../crates/enoki2d" }
+rand = "0.8.5"
+
+[[bin]]
+name = "sprites"
+path = "src/sprites.rs"
+
+[[bin]]
+name = "dynamic"
+path = "src/dynamic.rs"
+
+[[bin]]
+name = "material"
+path = "src/material.rs"

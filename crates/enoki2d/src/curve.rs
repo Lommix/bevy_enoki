@@ -76,9 +76,22 @@ impl From<&EaseFunction> for interpolation::EaseFunction {
 #[derive(Deserialize, Default, Serialize, Debug, Clone)]
 pub struct Curve<T>
 where
-    T: LerpThat<T> + std::fmt::Debug,
+    T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
 {
     pub points: Vec<(T, f32, Option<EaseFunction>)>,
+}
+
+impl<T> bevy::prelude::Curve<T> for Curve<T>
+where
+    T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
+{
+    fn domain(&self) -> Interval {
+        Interval::new(0., 1.).unwrap()
+    }
+
+    fn sample_unchecked(&self, t: f32) -> T {
+        self.lerp(t)
+    }
 }
 
 impl<T> Curve<T>

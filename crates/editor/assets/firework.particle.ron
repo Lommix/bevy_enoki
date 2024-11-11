@@ -1,0 +1,85 @@
+(
+    spawn_rate: 0.1,
+    spawn_amount: 1000,
+    emission_shape: Point,
+    lifetime: (3.0, 0.5),
+    direction: Some(((0, 1), 0.3)),
+    linear_speed: Some((1000, 0.5)),
+    linear_acceleration: Some((0, 0)),
+    angular_speed: Some((10, 0.1)),
+    angular_acceleration: Some((0, 0)),
+    gravity_speed: Some((500, 1)),
+    gravity_direction: Some(((0, -1), 0)),
+    scale: Some((100., 0)),
+    linear_damp: Some((30, 0.8)),
+    angular_damp: Some((1, 0)),
+    scale_curve: Some(
+        Curve(
+            points: [
+                (10, 0, None),
+                (
+                    50,
+                    0.3,
+                    Some(BounceOut),
+                ),
+                (1, 1.0, Some(SineOut)),
+            ],
+        ),
+    ),
+    color_curve: Some(
+        Curve(
+            points: [
+                (
+					LinearRgba(
+                        red: 2.0,
+                        green: 2.0,
+                        blue: 2.0,
+                        alpha: 1.0,
+                    ),
+                    0,
+                    None,
+                ),
+                (
+                    LinearRgba(
+                        red: 1.0,
+                        green: 8.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    ),
+                    0.2,
+                    None,
+                ),
+                (
+                    LinearRgba(
+                        red: 3.0,
+                        green: 0.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    ),
+                    0.3,
+                    None,
+                ),
+                (
+                    LinearRgba(
+                        red: 0.2,
+                        green: 0.2,
+                        blue: 0.2,
+                        alpha: 1.0,
+                    ),
+                    0.4,
+                    None,
+                ),
+                (
+                    LinearRgba(
+                        red: 0.5,
+                        green: 0.5,
+                        blue: 0.5,
+                        alpha: 1.0,
+                    ),
+                    1.0,
+                    None,
+                ),
+            ],
+        ),
+    ),
+)

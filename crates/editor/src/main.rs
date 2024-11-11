@@ -1,101 +1,34 @@
-use base64::Engine;
 use bevy::{
-    core_pipeline::bloom::BloomSettings, input::mouse::MouseWheel, prelude::*,
+    core_pipeline::bloom::Bloom, input::mouse::MouseWheel, prelude::*,
     render::render_resource::AsBindGroup,
 };
 pub(crate) use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
-use file::FileResource;
-use wasm_bindgen::prelude::wasm_bindgen;
+// use file::FileResource;
+// use wasm_bindgen::prelude::wasm_bindgen;
 
-mod bindings;
-mod file;
+// mod bindings;
+// mod file;
 mod gui;
-mod texture;
+// mod texture;
 
 pub(crate) const SPRITE_SHADER: Handle<Shader> =
     Handle::weak_from_u128(908340313783013137964307813738);
 
 fn main() {
-    #[cfg(not(target_arch = "wasm32"))]
-    run(None);
-}
-
-#[wasm_bindgen]
-pub fn run(options: Option<String>) {
-    let config = options
-        .map(|hash_encoded| base64::prelude::BASE64_URL_SAFE.decode(hash_encoded).ok())
-        .flatten()
-        .map(|config_string| ron::de::from_bytes::<bindings::ConfigOptions>(&config_string).ok())
-        .flatten();
-
     App::new()
         .add_plugins((
             DefaultPlugins,
             EnokiPlugin,
             Particle2dMaterialPlugin::<SpriteMaterial>::default(),
             bevy_egui::EguiPlugin,
-            file::FileManagerPlugin,
-            texture::TextureLoaderPlugin,
-            bindings::BindingPlugin,
-            LoaderPlugin(config),
+            // file::FileManagerPlugin,
+            // texture::TextureLoaderPlugin,
+            // bindings::BindingPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (gui, zoom))
         .run();
-}
-
-// this is not how you should do it, i am just lazy
-struct LoaderPlugin(Option<bindings::ConfigOptions>);
-impl Plugin for LoaderPlugin {
-    fn build(&self, app: &mut App) {
-        let shader_content = match self.0.as_ref() {
-            Some(config) => config.shader.clone(),
-            None => r#"#import bevy_enoki::particle_vertex_out::{ VertexOutput }
-
-@group(1) @binding(0) var texture: texture_2d<f32>;
-@group(1) @binding(1) var texture_sampler: sampler;
-
-
-@fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-	return textureSample(texture, texture_sampler, in.uv) * in.color;
-}"#
-            .into(),
-        };
-
-        app.world_mut()
-            .resource_mut::<Assets<Shader>>()
-            .insert(&SPRITE_SHADER, Shader::from_wgsl(shader_content, ""));
-
-        let effect_handle = match self.0.as_ref() {
-            Some(config) => {
-                let handle = app
-                    .world_mut()
-                    .resource_mut::<Assets<Particle2dEffect>>()
-                    .add(config.effect.clone());
-                handle
-            }
-            None => {
-                let fireworks = include_str!("../../assets/firework.particle.ron");
-                let effect: Particle2dEffect = ron::de::from_str(fireworks).unwrap();
-                app.world_mut()
-                    .resource_mut::<Assets<Particle2dEffect>>()
-                    .add(effect)
-            }
-        };
-
-        let material_handle = app
-            .world_mut()
-            .resource_mut::<Assets<SpriteMaterial>>()
-            .add(SpriteMaterial { texture: None });
-
-        app.world_mut().spawn(ParticleSpawnerBundle {
-            material: material_handle,
-            effect: effect_handle,
-            ..default()
-        });
-    }
 }
 
 fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader<MouseWheel>) {
@@ -111,21 +44,15 @@ fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader
 
 fn setup(mut cmd: Commands) {
     cmd.spawn((
-        Camera2dBundle {
-            transform: Transform::from_scale(Vec3::splat(2.0)),
-            camera: Camera {
-                hdr: true,
-                clear_color: ClearColorConfig::Custom(Color::BLACK),
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            hdr: true,
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
             ..default()
         },
-        BloomSettings {
+        Transform::from_scale(Vec3::splat(2.0)),
+        Bloom {
             intensity: 0.,
-            prefilter_settings: bevy::core_pipeline::bloom::BloomPrefilterSettings {
-                threshold: 1.,
-                ..default()
-            },
             ..default()
         },
     ));
@@ -139,8 +66,8 @@ fn gui(
         &mut ParticleEffectInstance,
         &mut ParticleSpawnerState,
     )>,
-    mut file: ResMut<FileResource>, // world: &mut World,
-    mut camera_query: Query<(&mut Camera, &mut BloomSettings)>,
+    // mut file: ResMut<FileResource>, // world: &mut World,
+    mut camera_query: Query<(&mut Camera, &mut Bloom)>,
     mut one_shot_mode: Local<bool>,
 ) {
     let Ok((entity, mut effect_instance, mut state)) = effect_query.get_single_mut() else {
@@ -150,7 +77,7 @@ fn gui(
     egui::Window::new("Particle Config")
         .scroll([false, true])
         .show(context.ctx_mut(), |ui| {
-            file::file_panel(ui, &mut effect_instance, &mut file);
+            // file::file_panel(ui, &mut effect_instance, &mut file);
             egui::Grid::new("one_shot")
                 .spacing([4., 4.])
                 .num_columns(2)
@@ -200,15 +127,12 @@ fn gui(
                             ui.end_row();
 
                             ui.label("Threshold");
-                            ui.add(egui::Slider::new(
-                                &mut bloom.prefilter_settings.threshold,
-                                (0.)..=1.,
-                            ));
+                            ui.add(egui::Slider::new(&mut bloom.prefilter.threshold, (0.)..=1.));
                             ui.end_row();
 
                             ui.label("Softness");
                             ui.add(egui::Slider::new(
-                                &mut bloom.prefilter_settings.threshold_softness,
+                                &mut bloom.prefilter.threshold_softness,
                                 (0.)..=1.,
                             ));
                             ui.end_row();
