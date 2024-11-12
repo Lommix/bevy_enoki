@@ -18,7 +18,7 @@ fn main() {
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(EnokiPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (show_fps, change_dynamic))
+        .add_systems(Update, (show_fps, change_dynamic, move_camera))
         .run();
 }
 
@@ -116,4 +116,21 @@ fn show_fps(
     };
 
     text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
+}
+
+fn move_camera(
+    mut cam: Query<&mut Transform, With<Camera>>,
+    inputs: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+) {
+    let x = inputs.pressed(KeyCode::ArrowLeft) as i32 - inputs.pressed(KeyCode::ArrowRight) as i32;
+    let y = inputs.pressed(KeyCode::ArrowUp) as i32 - inputs.pressed(KeyCode::ArrowDown) as i32;
+
+    let zoom = inputs.pressed(KeyCode::KeyO) as i32 - inputs.pressed(KeyCode::KeyI) as i32;
+
+    cam.iter_mut().for_each(|mut t| {
+        t.translation.x += x as f32 * 300. * time.delta_secs();
+        t.translation.y += y as f32 * 300. * time.delta_secs();
+        t.scale = (t.scale + (zoom as f32) * 0.1).max(Vec3::splat(0.1));
+    });
 }

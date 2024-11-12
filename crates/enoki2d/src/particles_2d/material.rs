@@ -1,5 +1,5 @@
 use super::{
-    update::{Particle, ParticleEffectInstance},
+    update::Particle,
     MaterialHandle, ParticleStore,
 };
 use bevy::{

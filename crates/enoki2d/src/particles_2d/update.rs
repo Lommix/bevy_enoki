@@ -1,7 +1,7 @@
 use super::{loader::EffectHandle, prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
-use bevy::prelude::*;
-use std::{collections::VecDeque, time::Duration};
+use bevy::{prelude::*, render::primitives::Aabb};
+use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
@@ -90,6 +90,7 @@ pub(crate) fn update_spawner(
         Entity,
         &mut ParticleStore,
         &mut ParticleSpawnerState,
+        &mut Aabb,
         &ViewVisibility,
         &ParticleEffectInstance,
         &GlobalTransform,
@@ -98,7 +99,7 @@ pub(crate) fn update_spawner(
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, visibility, effect_instance, transform)| {
+        |(entity, mut store, mut state, mut aabb, visibility, effect_instance, transform)| {
             if !visibility.get() {
                 return;
             }
@@ -128,17 +129,20 @@ pub(crate) fn update_spawner(
                 }
             }
 
+            let mut min = Vec2::ZERO;
+            let mut max = Vec2::ZERO;
+
             store.retain_mut(|particle| {
-                update_particle(particle, &effect, time.delta_secs());
+                update_particle(particle, &effect, time.delta_secs(), &mut min, &mut max);
                 particle.lifetime.tick(time.delta());
                 !particle.lifetime.finished()
             });
+
+            aabb.half_extents = ((max - min).extend(0.) / 2.).into();
         },
     );
 }
 
-#[rustfmt::skip]
-#[inline]
 fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle {
     // direction
     let direction = effect
@@ -163,11 +167,7 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
         .map(|s| s.rand())
         .unwrap_or_default();
     // angular
-    let scale = effect
-        .scale
-        .as_ref()
-        .map(|s| s.rand())
-        .unwrap_or_default();
+    let scale = effect.scale.as_ref().map(|s| s.rand()).unwrap_or_default();
 
     let gravity_direction = effect
         .gravity_direction
@@ -209,17 +209,23 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
     let mut transform = transform.clone();
     transform.scale = Vec3::splat(scale);
 
-    transform.translation += match effect.emission_shape{
+    transform.translation += match effect.emission_shape {
         EmissionShape::Point => Vec3::ZERO,
         EmissionShape::Circle(radius) => {
-            Vec3::new(rand::random::<f32>() - 0.5,rand::random::<f32>() - 0.5,0.).normalize_or_zero() * radius * rand::random::<f32>()
+            Vec3::new(rand::random::<f32>() - 0.5, rand::random::<f32>() - 0.5, 0.)
+                .normalize_or_zero()
+                * radius
+                * rand::random::<f32>()
         }
     };
 
     Particle {
         transform,
         velocity: ((direction * speed).extend(0.), angular),
-        lifetime: Timer::new(Duration::from_secs_f32(effect.lifetime.rand()), TimerMode::Once),
+        lifetime: Timer::new(
+            Duration::from_secs_f32(effect.lifetime.rand()),
+            TimerMode::Once,
+        ),
         color: effect.color.unwrap_or(LinearRgba::WHITE),
         angular_damp,
         linear_damp,
@@ -231,8 +237,13 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
     }
 }
 
-#[inline]
-fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f32) {
+fn update_particle(
+    particle: &mut Particle,
+    effect: &Particle2dEffect,
+    delta: f32,
+    min: &mut Vec2,
+    max: &mut Vec2,
+) {
     let (lin_velo, rot_velo) = &mut particle.velocity;
     let progess = particle.lifetime.fraction();
 
@@ -254,4 +265,11 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
 
     particle.transform.translation += *lin_velo * delta + gravity;
     particle.transform.rotate_local_z(*rot_velo * delta);
+
+    // perf. properly a bad idea to bound check every particle
+    // todo: avg every third
+    min.x = min.x.min(particle.transform.translation.x);
+    min.y = min.y.min(particle.transform.translation.y);
+    max.x = max.x.max(particle.transform.translation.x);
+    max.y = max.y.max(particle.transform.translation.y);
 }
