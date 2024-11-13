@@ -1,6 +1,6 @@
-use super::{loader::EffectHandle, prelude::EmissionShape, Particle2dEffect};
+use super::{prelude::EmissionShape, EffectHandle, Particle2dEffect};
 use crate::values::Random;
-use bevy::prelude::*;
+use bevy::{prelude::*, render::primitives::Aabb};
 use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first
@@ -255,4 +255,33 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
 
     particle.transform.translation += *lin_velo * delta + gravity;
     particle.transform.rotate_local_z(*rot_velo * delta);
+}
+
+pub(crate) fn calculcate_particle_bounds(
+    mut cmd: Commands,
+    spawners: Query<(Entity, &ParticleStore)>,
+) {
+    spawners.iter().for_each(|(entity, store)| {
+        let particle_count = store.len();
+
+        if particle_count <= 0 {
+            return;
+        }
+
+        let accuracy = (particle_count / 1000).min(1).max(10);
+
+        let (min, max) = store
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i % accuracy == 0)
+            .fold((Vec2::ZERO, Vec2::ZERO), |mut acc, (_, particle)| {
+                acc.0.x = acc.0.x.min(particle.transform.translation.x);
+                acc.0.y = acc.0.y.min(particle.transform.translation.y);
+                acc.1.x = acc.1.x.max(particle.transform.translation.x);
+                acc.1.y = acc.1.y.max(particle.transform.translation.y);
+                acc
+            });
+        cmd.entity(entity)
+            .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
+    });
 }

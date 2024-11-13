@@ -1,6 +1,5 @@
 use self::prelude::{
-    Particle2dEffect, Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState,
-    ParticleStore,
+    Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState, ParticleStore,
 };
 use crate::sprite::SpriteParticle2dMaterial;
 use bevy::{
@@ -13,7 +12,8 @@ use bevy::{
     },
 };
 use color::ColorParticle2dMaterial;
-use loader::EffectHandle;
+use serde::{Deserialize, Serialize};
+use values::Rval;
 
 mod color;
 mod curve;
@@ -27,12 +27,12 @@ mod values;
 pub mod prelude {
     pub use super::color::ColorParticle2dMaterial;
     pub use super::curve::{Curve, EaseFunction, LerpThat};
-    pub use super::loader::{EffectHandle, EmissionShape, Particle2dEffect, ParticleEffectLoader};
+    pub use super::loader::ParticleEffectLoader;
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::values::{Random, Rval};
-    pub use super::ParticleSpawner;
+    pub use super::{EffectHandle, EmissionShape, Particle2dEffect, ParticleSpawner};
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -82,7 +82,7 @@ impl Plugin for EnokiPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
-        app.register_type::<loader::EffectHandle>();
+        app.register_type::<EffectHandle>();
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
 
@@ -118,7 +118,7 @@ impl Plugin for EnokiPlugin {
         app.add_systems(
             PostUpdate,
             (
-                calculcate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
+                update::calculcate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
                 check_visibility::<WithParticles>.in_set(VisibilitySystems::CheckVisibility),
             ),
         );
@@ -126,31 +126,6 @@ impl Plugin for EnokiPlugin {
 }
 
 pub type WithParticles = With<ParticleSpawnerState>;
-fn calculcate_particle_bounds(mut cmd: Commands, spawners: Query<(Entity, &ParticleStore)>) {
-    spawners.iter().for_each(|(entity, store)| {
-        let particle_count = store.len();
-
-        if particle_count <= 0 {
-            return;
-        }
-
-        let accuracy = (particle_count / 1000).min(1).max(10);
-
-        let (min, max) = store
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| i % accuracy == 0)
-            .fold((Vec2::ZERO, Vec2::ZERO), |mut acc, (_, particle)| {
-                acc.0.x = acc.0.x.min(particle.transform.translation.x);
-                acc.0.y = acc.0.y.min(particle.transform.translation.y);
-                acc.1.x = acc.1.x.max(particle.transform.translation.x);
-                acc.1.y = acc.1.y.max(particle.transform.translation.y);
-                acc
-            });
-        cmd.entity(entity)
-            .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
-    });
-}
 
 /// The main particle spawner components
 /// has required components
@@ -176,5 +151,72 @@ impl<T: Asset> From<Handle<T>> for ParticleSpawner<T> {
 impl Default for ParticleSpawner<ColorParticle2dMaterial> {
     fn default() -> Self {
         ParticleSpawner(Handle::default())
+    }
+}
+
+#[derive(Deserialize, Reflect, Default, Clone, Debug, Serialize)]
+#[reflect]
+pub enum EmissionShape {
+    #[default]
+    Point,
+    Circle(f32),
+}
+
+/// holds the effect asset. Changing the Asset, will
+/// effect all spanwers using it. Instead use `ParticleEffectInstance`,
+/// which is a unique copy for each spawner,
+#[derive(Component, Reflect, Deref, DerefMut, Default)]
+#[reflect]
+pub struct EffectHandle(pub Handle<Particle2dEffect>);
+
+impl From<Handle<Particle2dEffect>> for EffectHandle {
+    fn from(value: Handle<Particle2dEffect>) -> Self {
+        Self(value)
+    }
+}
+
+/// The particle effect asset.
+#[derive(Asset, TypePath, Deserialize, Serialize, Clone, Debug)]
+pub struct Particle2dEffect {
+    pub spawn_rate: f32,
+    pub spawn_amount: u32,
+    pub emission_shape: EmissionShape,
+    pub lifetime: Rval<f32>,
+    pub linear_speed: Option<Rval<f32>>,
+    pub linear_acceleration: Option<Rval<f32>>,
+    pub direction: Option<Rval<Vec2>>,
+    pub angular_speed: Option<Rval<f32>>,
+    pub angular_acceleration: Option<Rval<f32>>,
+    pub scale: Option<Rval<f32>>,
+    pub color: Option<LinearRgba>,
+    pub gravity_direction: Option<Rval<Vec2>>,
+    pub gravity_speed: Option<Rval<f32>>,
+    pub linear_damp: Option<Rval<f32>>,
+    pub angular_damp: Option<Rval<f32>>,
+    pub scale_curve: Option<curve::Curve<f32>>,
+    pub color_curve: Option<curve::Curve<LinearRgba>>,
+}
+
+impl Default for Particle2dEffect {
+    fn default() -> Self {
+        Self {
+            spawn_rate: 0.1,
+            spawn_amount: 1,
+            emission_shape: EmissionShape::Point,
+            lifetime: Rval::new(1., 0.0),
+            linear_speed: Some(Rval(100., 0.1)),
+            linear_acceleration: None,
+            direction: Some(Rval(Vec2::Y, 0.1)),
+            angular_speed: None,
+            angular_acceleration: None,
+            scale: Some(Rval(5., 1.)),
+            color: None,
+            gravity_direction: None,
+            gravity_speed: None,
+            linear_damp: None,
+            angular_damp: None,
+            scale_curve: None,
+            color_curve: None,
+        }
     }
 }

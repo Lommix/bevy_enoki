@@ -67,9 +67,8 @@ fn setup(
     ));
 
     cmd.spawn((
-        ParticleSpawnerState::default(),
-        EffectHandle(server.load("base.particle.ron")),
         ParticleSpawner(material_handle),
+        EffectHandle(server.load("base.particle.ron")),
     ));
 }
 

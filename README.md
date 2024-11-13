@@ -58,7 +58,7 @@ App::new()
     .run()
 ```
 
-Create your first particle spawner. [Here is a default effect config](assets/base.particle.ron)
+Create your first particle spawner.
 
 ```rust
 use bevy_enoki::prelude::*;
@@ -70,35 +70,50 @@ fn setup(
 ){
     cmd.spawn(Camera2dBundle::default());
 
-    //spawning quads
+    // minimal setup
+    // white quads with a default effect
+    cmd.spawn(
+        // the main component.
+        // holds a material handle.
+        // defaults to a simple white color quad.
+        // has required components
+        ParticleSpawner::default()
+    )
+
+    // bring in your own effect asset from a ron file
+    // (hot reload by default)
     cmd.spawn((
-        ParticleSpawnerBundle {
-            // load the effect configuration from a ron file
-            effect: server.load("fire.particle.ron"),
-            // the default materiel is just a flat white color
-            // that gets multiplied by any color curve inside the
-            // effect definition of the `ron` file.
-            material: DEFAULT_MATERIAL,
-            ..default()
-        },
+        ParticleSpawner::default(),
+        // the effect components holds the baseline
+        // effect asset.
+        EffectHandle(server.load("firework.particle.ron")),
     ));
 
-    // if you want to add a texture, use the inbuild `ColorParticle2dMaterial`
-    let texture_material = materials.add(
-        // hframes and vframes define how the sprite sheet is divided for animations,
-        // if you just want to bind a single texture, leave both at 1.
+
+    // now with a sprite sheet animation over lifetime
+    let sprite_material = materials.add(
+        // the other args (hframes and vframes) defines how the sprite sheet is divided for animating,
+        // you can also just use `form_texture` for a single sprite
         SpriteParticle2dMaterial::new(server.load("particle.png"), 6, 1),
     );
 
     cmd.spawn((
-        ParticleSpawnerBundle {
-            effect: server.load("fire.particle.ron"),
-            material: texture_material,
-            ..default()
-        },
+        ParticleSpawner(sprite_material),
+        EffectHandle(server.load("firework.particle.ron")),
     ));
 }
 ```
+
+## Control your particles
+
+There 4 main components you can play with. These are required by the `ParticleSpawner`
+and thus added, if not provided.
+
+-   `ParticleSpawnerState`: Controls the spawner state.
+-   `ParticleEffectInstance`: A unique clone of the effect. Can be changed at runtime, only affects the spawner attached to. Will reload, when the asset changes.
+-   `EffectHandle`: A link the main effect asset.
+-   `ParticleStore`: Holds the particle data. You mostly won't interact with this.
+-   `OneShot`: A optional Tag component. That will either deactivate or delete the spawner, after first burst is done.
 
 ## Create a custom Material
 
@@ -128,7 +143,7 @@ fn setup(){
 }
 ```
 
-Now create the Shader
+## Create a shader
 
 ```wgsl
 //assets/custom_material.wgsl
