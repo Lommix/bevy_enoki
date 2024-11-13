@@ -175,7 +175,7 @@ struct VertexOutput {
 
 ## The Effect Asset
 
-[Here is a default ron config](assets/base.particle.ron)
+[Here is a default ron config](example/assets/base.particle.ron)
 
 ```rust
 #[derive(Deserialize, Default, Clone, Debug)]
