@@ -1,4 +1,4 @@
-use super::{prelude::EmissionShape, EffectHandle, Particle2dEffect};
+use super::{prelude::EmissionShape, ParticleEffectHandle, Particle2dEffect};
 use crate::values::Random;
 use bevy::{prelude::*, render::primitives::Aabb};
 use std::time::Duration;
@@ -58,7 +58,7 @@ pub struct Particle {
 
 pub(crate) fn clone_effect(
     mut particle_spawners: Query<
-        (&mut ParticleEffectInstance, &EffectHandle),
+        (&mut ParticleEffectInstance, &ParticleEffectHandle),
         Added<ParticleSpawnerState>,
     >,
     effects: Res<Assets<Particle2dEffect>>,

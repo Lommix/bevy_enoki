@@ -86,7 +86,7 @@ fn setup(
         ParticleSpawner::default(),
         // the effect components holds the baseline
         // effect asset.
-        EffectHandle(server.load("firework.particle.ron")),
+        ParticleEffectHandle(server.load("firework.particle.ron")),
     ));
 
 
@@ -99,7 +99,7 @@ fn setup(
 
     cmd.spawn((
         ParticleSpawner(sprite_material),
-        EffectHandle(server.load("firework.particle.ron")),
+        ParticleEffectHandle(server.load("firework.particle.ron")),
     ));
 }
 ```
@@ -111,7 +111,7 @@ and thus added, if not provided.
 
 -   `ParticleSpawnerState`: Controls the spawner state.
 -   `ParticleEffectInstance`: A unique clone of the effect. Can be changed at runtime, only affects the spawner attached to. Will reload, when the asset changes.
--   `EffectHandle`: A link the main effect asset.
+-   `ParticleEffectHandle`: A link the main effect asset.
 -   `ParticleStore`: Holds the particle data. You mostly won't interact with this.
 -   `OneShot`: A optional Tag component. That will either deactivate or delete the spawner, after first burst is done.
 

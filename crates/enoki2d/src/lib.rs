@@ -32,7 +32,7 @@ pub mod prelude {
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::values::{Random, Rval};
-    pub use super::{EffectHandle, EmissionShape, Particle2dEffect, ParticleSpawner};
+    pub use super::{EmissionShape, Particle2dEffect, ParticleEffectHandle, ParticleSpawner};
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -82,7 +82,7 @@ impl Plugin for EnokiPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
-        app.register_type::<EffectHandle>();
+        app.register_type::<ParticleEffectHandle>();
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
 
@@ -133,7 +133,7 @@ pub type WithParticles = With<ParticleSpawnerState>;
 #[require(
     ParticleSpawnerState,
     ParticleEffectInstance,
-    EffectHandle,
+    ParticleEffectHandle,
     ParticleStore,
     Transform,
     Visibility,
@@ -167,9 +167,9 @@ pub enum EmissionShape {
 /// which is a unique copy for each spawner,
 #[derive(Component, Reflect, Deref, DerefMut, Default)]
 #[reflect]
-pub struct EffectHandle(pub Handle<Particle2dEffect>);
+pub struct ParticleEffectHandle(pub Handle<Particle2dEffect>);
 
-impl From<Handle<Particle2dEffect>> for EffectHandle {
+impl From<Handle<Particle2dEffect>> for ParticleEffectHandle {
     fn from(value: Handle<Particle2dEffect>) -> Self {
         Self(value)
     }

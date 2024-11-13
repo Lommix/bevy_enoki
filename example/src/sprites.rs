@@ -86,7 +86,7 @@ fn spawn_particles(
         let y = (rand::random::<f32>() - 0.5) * 500.;
 
         cmd.spawn((
-            EffectHandle(server.load("firework.particle.ron")),
+            ParticleEffectHandle(server.load("firework.particle.ron")),
             ParticleSpawner(material.0.clone()),
             Transform::from_xyz(x, y, index.0),
             OneShot::Despawn,
