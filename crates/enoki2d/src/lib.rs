@@ -32,7 +32,9 @@ pub mod prelude {
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::values::{Random, Rval};
-    pub use super::{EmissionShape, Particle2dEffect, ParticleEffectHandle, ParticleSpawner};
+    pub use super::{
+        EmissionShape, NoAutoAabb, Particle2dEffect, ParticleEffectHandle, ParticleSpawner,
+    };
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -126,6 +128,11 @@ impl Plugin for EnokiPlugin {
 }
 
 pub type WithParticles = With<ParticleSpawnerState>;
+
+/// adding this component will disabled auto
+/// aabb caluclation. Aabb resolves to it's default size.
+#[derive(Component)]
+pub struct NoAutoAabb;
 
 /// The main particle spawner components
 /// has required components

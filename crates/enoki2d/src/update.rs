@@ -1,4 +1,4 @@
-use super::{prelude::EmissionShape, ParticleEffectHandle, Particle2dEffect};
+use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
 use bevy::{prelude::*, render::primitives::Aabb};
 use std::time::Duration;
@@ -259,7 +259,7 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
 
 pub(crate) fn calculcate_particle_bounds(
     mut cmd: Commands,
-    spawners: Query<(Entity, &ParticleStore)>,
+    spawners: Query<(Entity, &ParticleStore), Without<crate::NoAutoAabb>>,
 ) {
     spawners.iter().for_each(|(entity, store)| {
         let particle_count = store.len();
