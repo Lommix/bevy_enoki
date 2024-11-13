@@ -25,7 +25,7 @@ impl From<Handle<Particle2dEffect>> for EffectHandle {
 }
 
 /// The particle effect asset
-#[derive(Asset, TypePath, Default, Deserialize, Serialize, Clone, Debug)]
+#[derive(Asset, TypePath, Deserialize, Serialize, Clone, Debug)]
 pub struct Particle2dEffect {
     pub spawn_rate: f32,
     pub spawn_amount: u32,
@@ -44,6 +44,30 @@ pub struct Particle2dEffect {
     pub angular_damp: Option<Rval<f32>>,
     pub scale_curve: Option<Curve<f32>>,
     pub color_curve: Option<Curve<LinearRgba>>,
+}
+
+impl Default for Particle2dEffect {
+    fn default() -> Self {
+        Self {
+            spawn_rate: 1.,
+            spawn_amount: 100,
+            emission_shape: EmissionShape::Point,
+            lifetime: Rval::new(1., 0.5),
+            linear_speed: Some(Rval(100., 0.5)),
+            linear_acceleration: None,
+            direction: Some(Rval(Vec2::Y, 0.2)),
+            angular_speed: None,
+            angular_acceleration: None,
+            scale: Some(Rval(5., 0.5)),
+            color: None,
+            gravity_direction: Some(Rval(Vec2::NEG_Y, 0.)),
+            gravity_speed: Some(Rval(100., 0.)),
+            linear_damp: None,
+            angular_damp: None,
+            scale_curve: None,
+            color_curve: None,
+        }
+    }
 }
 
 #[derive(Default)]

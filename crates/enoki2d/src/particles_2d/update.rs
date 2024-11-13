@@ -1,6 +1,9 @@
 use super::{loader::EffectHandle, prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
-use bevy::{prelude::*, render::primitives::Aabb};
+use bevy::{
+    prelude::*,
+    render::{primitives::Aabb, sync_world::SyncToRenderWorld},
+};
 use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first
@@ -14,6 +17,15 @@ pub enum OneShot {
 
 /// Spawner states controls the spawner
 #[derive(Component, Clone, Debug, Reflect)]
+#[require(
+    EffectHandle,
+    ParticleEffectInstance,
+    ParticleStore,
+    Transform,
+    Visibility,
+    Aabb,
+    SyncToRenderWorld
+)]
 pub struct ParticleSpawnerState {
     pub max_particles: u32,
     pub active: bool,
@@ -90,7 +102,6 @@ pub(crate) fn update_spawner(
         Entity,
         &mut ParticleStore,
         &mut ParticleSpawnerState,
-        &mut Aabb,
         &ViewVisibility,
         &ParticleEffectInstance,
         &GlobalTransform,
@@ -99,7 +110,7 @@ pub(crate) fn update_spawner(
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, mut aabb, visibility, effect_instance, transform)| {
+        |(entity, mut store, mut state, visibility, effect_instance, transform)| {
             if !visibility.get() {
                 return;
             }
@@ -129,16 +140,16 @@ pub(crate) fn update_spawner(
                 }
             }
 
-            let mut min = Vec2::ZERO;
-            let mut max = Vec2::ZERO;
+            // let mut min = Vec2::ZERO;
+            // let mut max = Vec2::ZERO;
 
             store.retain_mut(|particle| {
-                update_particle(particle, &effect, time.delta_secs(), &mut min, &mut max);
+                update_particle(particle, &effect, time.delta_secs());
                 particle.lifetime.tick(time.delta());
                 !particle.lifetime.finished()
             });
 
-            aabb.half_extents = ((max - min).extend(0.) / 2.).into();
+            // aabb.half_extents = ((max - min).extend(0.) / 2.).into();
         },
     );
 }
@@ -237,13 +248,7 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
     }
 }
 
-fn update_particle(
-    particle: &mut Particle,
-    effect: &Particle2dEffect,
-    delta: f32,
-    min: &mut Vec2,
-    max: &mut Vec2,
-) {
+fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f32) {
     let (lin_velo, rot_velo) = &mut particle.velocity;
     let progess = particle.lifetime.fraction();
 
@@ -265,11 +270,4 @@ fn update_particle(
 
     particle.transform.translation += *lin_velo * delta + gravity;
     particle.transform.rotate_local_z(*rot_velo * delta);
-
-    // perf. properly a bad idea to bound check every particle
-    // todo: avg every third
-    min.x = min.x.min(particle.transform.translation.x);
-    min.y = min.y.min(particle.transform.translation.y);
-    max.x = max.x.max(particle.transform.translation.x);
-    max.y = max.y.max(particle.transform.translation.y);
 }

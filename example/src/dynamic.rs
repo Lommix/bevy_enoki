@@ -2,11 +2,7 @@
 /// dynamic example
 /// how to update effect behavior dynamiclly
 /// ----------------------------------------------
-use bevy::{
-    core_pipeline::bloom::{Bloom, BloomSettings},
-    diagnostic::DiagnosticsStore,
-    prelude::*,
-};
+use bevy::{core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, prelude::*};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
 
@@ -60,23 +56,21 @@ fn setup(
     cmd.spawn((
         Text::default(),
         TextFont {
-            font_size: 42.,
+            font_size: 24.,
             ..default()
         },
         FpsText,
     ));
 
-    cmd.spawn((ParticleSpawnerBundle {
-        effect: server.load("base.particle.ron").into(),
-        material: materials
-            .add(SpriteParticle2dMaterial::new(
-                server.load("enoki.png"),
-                1,
-                1,
-            ))
-            .into(),
-        ..default()
-    },));
+    let material_handle = materials.add(SpriteParticle2dMaterial::from_texture(
+        server.load("enoki.png"),
+    ));
+
+    cmd.spawn((
+        ParticleSpawnerState::default(),
+        EffectHandle(server.load("base.particle.ron")),
+        MaterialHandle(material_handle),
+    ));
 }
 
 fn change_dynamic(
@@ -115,7 +109,10 @@ fn show_fps(
         return;
     };
 
-    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
+    text.0 = format!(
+        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {:.1}\nParticles: {}",
+        fps, particle_count
+    );
 }
 
 fn move_camera(
@@ -123,7 +120,7 @@ fn move_camera(
     inputs: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let x = inputs.pressed(KeyCode::ArrowLeft) as i32 - inputs.pressed(KeyCode::ArrowRight) as i32;
+    let x = inputs.pressed(KeyCode::ArrowRight) as i32 - inputs.pressed(KeyCode::ArrowLeft) as i32;
     let y = inputs.pressed(KeyCode::ArrowUp) as i32 - inputs.pressed(KeyCode::ArrowDown) as i32;
 
     let zoom = inputs.pressed(KeyCode::KeyO) as i32 - inputs.pressed(KeyCode::KeyI) as i32;

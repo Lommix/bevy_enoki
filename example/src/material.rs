@@ -42,26 +42,24 @@ fn setup(
         },
     ));
 
-    let material = materials.add(FireParticleMaterial {
+    let material_handle = materials.add(FireParticleMaterial {
         texture: server.load("noise.png"),
     });
 
     cmd.spawn((
+        ParticleSpawnerState::default(),
+        EffectHandle(server.load("ice.particle.ron")),
+        MaterialHandle(material_handle),
+    ));
+
+    cmd.spawn((
         Text::default(),
         TextFont {
-            font_size: 42.,
+            font_size: 24.,
             ..default()
         },
         FpsText,
     ));
-
-    cmd.spawn((ParticleSpawnerBundle {
-        transform: Transform::default(),
-        effect: server.load("ice.particle.ron").into(),
-        // material: DEFAULT_MATERIAL,
-        material: material.into(),
-        ..default()
-    },));
 }
 
 fn show_fps(
@@ -83,7 +81,10 @@ fn show_fps(
         return;
     };
 
-    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
+    text.0 = format!(
+        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {:.1}\nParticles: {}",
+        fps, particle_count
+    );
 }
 
 #[derive(AsBindGroup, Asset, TypePath, Clone, Default)]
@@ -104,7 +105,7 @@ fn move_camera(
     inputs: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let x = inputs.pressed(KeyCode::ArrowLeft) as i32 - inputs.pressed(KeyCode::ArrowRight) as i32;
+    let x = inputs.pressed(KeyCode::ArrowRight) as i32 - inputs.pressed(KeyCode::ArrowLeft) as i32;
     let y = inputs.pressed(KeyCode::ArrowUp) as i32 - inputs.pressed(KeyCode::ArrowDown) as i32;
 
     let zoom = inputs.pressed(KeyCode::KeyO) as i32 - inputs.pressed(KeyCode::KeyI) as i32;
@@ -112,6 +113,6 @@ fn move_camera(
     cam.iter_mut().for_each(|mut t| {
         t.translation.x += x as f32 * 300. * time.delta_secs();
         t.translation.y += y as f32 * 300. * time.delta_secs();
-        t.scale = (t.scale + (zoom as f32) * 0.1).min(Vec3::splat(0.1));
+        t.scale = (t.scale + (zoom as f32) * 0.1).max(Vec3::splat(0.1));
     });
 }

@@ -12,14 +12,12 @@ Enoki - A 2D particle system for the Bevy game engine.
 
 ## Overview
 
-The Enoki particle system is a CPU calculate particle system, that uses GPU Instancing and works well with `wasm`. It provides a `material trait`
-that lets you easily implement your own fragment shader for all your VFX needs.
+The Enoki particle system is a CPU calculate particle system, that uses GPU Instancing and works well in `wasm` and mobile.
+You have access to a `Material Trait` which let's you implement your own
+fragment shaders on top. Resulting in a powerful tool to build any modern VFX effect.
+
 Additionally, spawner configuration are provided via `ron` files, which can be hot reloaded.
-
 The default material allows not only for custom textures, but also sprite sheet animations over the particle lifetime.
-
-🚧 This Plugin just released and is still under heavy development. The particle behavior is very basic and performance could be better.
-Expect rapid change. Planned is orbital velocity, attractors and simple physics. When 2d is fleshed out and the best it can be, 3d might happen.
 
 ## Compatibility
 
@@ -34,7 +32,6 @@ Expect rapid change. Planned is orbital velocity, attractors and simple physics.
 [WIP]
 
 ---
-
 
 ## Examples
 

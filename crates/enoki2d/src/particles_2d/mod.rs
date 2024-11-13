@@ -7,7 +7,9 @@ use bevy::{
     asset::load_internal_asset,
     prelude::*,
     render::{
-        primitives::Aabb, sync_world::SyncToRenderWorld, view::{check_visibility, VisibilitySystems}
+        primitives::Aabb,
+        sync_world::SyncToRenderWorld,
+        view::{check_visibility, VisibilitySystems},
     },
 };
 use color::ColorParticle2dMaterial;
@@ -26,7 +28,7 @@ pub mod prelude {
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
-    pub use super::{MaterialHandle, ParticleSpawnerBundle, DEFAULT_MATERIAL};
+    pub use super::MaterialHandle;
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -37,8 +39,6 @@ pub(crate) const PARTICLE_COLOR_FRAG: Handle<Shader> =
     Handle::weak_from_u128(27641685611347896254665674658656433339);
 pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
     Handle::weak_from_u128(52323345476969163624641232313030656999);
-pub const DEFAULT_MATERIAL: Handle<ColorParticle2dMaterial> =
-    Handle::weak_from_u128(96423345474653413361641232813030656919);
 
 pub struct Particles2dPlugin;
 impl Plugin for Particles2dPlugin {
@@ -79,14 +79,22 @@ impl Plugin for Particles2dPlugin {
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::Particle>();
         app.register_type::<loader::EffectHandle>();
+        app.init_asset::<Particle2dEffect>();
+        app.init_asset_loader::<loader::ParticleEffectLoader>();
 
         app.world_mut()
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
-            .insert(DEFAULT_MATERIAL.id(), ColorParticle2dMaterial::default());
+            .insert(
+                &Handle::<ColorParticle2dMaterial>::default(),
+                ColorParticle2dMaterial::default(),
+            );
 
-        app.init_asset::<Particle2dEffect>();
-        app.init_asset_loader::<loader::ParticleEffectLoader>();
-        app.init_asset_loader::<sprite::ColorParticle2dAssetLoader>();
+        app.world_mut()
+            .resource_mut::<Assets<Particle2dEffect>>()
+            .insert(
+                &Handle::<Particle2dEffect>::default(),
+                Particle2dEffect::default(),
+            );
 
         app.add_systems(
             First,
@@ -99,46 +107,48 @@ impl Plugin for Particles2dPlugin {
                 loader::reload_effect,
                 update::clone_effect,
                 update::remove_finished_spawner,
+                update::update_spawner,
             ),
         );
 
         app.add_systems(
             PostUpdate,
             (
-                check_visibility::<With<ParticleEffectInstance>>,
-                update::update_spawner,
-            )
-                .in_set(VisibilitySystems::CheckVisibility)
-                .chain(),
+                calculcate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
+                check_visibility::<WithParticles>.in_set(VisibilitySystems::CheckVisibility),
+            ),
         );
     }
 }
 
-/// Everything required to create a particle spawner
-#[derive(Bundle)]
-pub struct ParticleSpawnerBundle<M: Particle2dMaterial> {
-    /// holds the spawner state
-    pub state: ParticleSpawnerState,
-    /// particle effect handle
-    pub effect: EffectHandle,
-    /// the spawners unique effect value,
-    /// these can be modified at runtime,
-    /// hot reloading the asset resets them to the original state
-    pub effect_instance: ParticleEffectInstance,
-    /// hold the particle data
-    pub particle_store: ParticleStore,
-    /// provided particle material
-    pub material: MaterialHandle<M>,
-    pub visibility: Visibility,
-    pub inherited_visibility: InheritedVisibility,
-    pub view_visibility: ViewVisibility,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub aabb: Aabb,
-    pub sync: SyncToRenderWorld,
+pub type WithParticles = With<ParticleSpawnerState>;
+fn calculcate_particle_bounds(mut cmd: Commands, spawners: Query<(Entity, &ParticleStore)>) {
+    spawners.iter().for_each(|(entity, store)| {
+        let particle_count = store.len();
+
+        if particle_count <= 0 {
+            return;
+        }
+
+        let accuracy = (particle_count / 1000).min(1).max(10);
+
+        let (min, max) = store
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i % accuracy == 0)
+            .fold((Vec2::ZERO, Vec2::ZERO), |mut acc, (_, particle)| {
+                acc.0.x = acc.0.x.min(particle.transform.translation.x);
+                acc.0.y = acc.0.y.min(particle.transform.translation.y);
+                acc.1.x = acc.1.x.max(particle.transform.translation.x);
+                acc.1.y = acc.1.y.max(particle.transform.translation.y);
+                acc
+            });
+        cmd.entity(entity)
+            .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
+    });
 }
 
-#[derive(Component, DerefMut, Deref, Default, Clone)]
+#[derive(Component, DerefMut, Deref, Clone)]
 pub struct MaterialHandle<T: Asset>(pub Handle<T>);
 
 impl<T: Asset> From<Handle<T>> for MaterialHandle<T> {
@@ -147,21 +157,35 @@ impl<T: Asset> From<Handle<T>> for MaterialHandle<T> {
     }
 }
 
-impl<M: Particle2dMaterial + Default> Default for ParticleSpawnerBundle<M> {
+impl<M: Particle2dMaterial + Default> Default for MaterialHandle<M> {
+    fn default() -> Self {
+        MaterialHandle(Handle::default())
+    }
+}
+
+/// the main spawner
+#[derive(Component)]
+#[require(
+    ParticleSpawnerState,
+    ParticleEffectInstance,
+    EffectHandle,
+    ParticleStore,
+    Transform,
+    Visibility,
+    Aabb,
+    SyncToRenderWorld
+)]
+pub struct ParticleSpawner<T: Particle2dMaterial> {
+    pub material: Handle<T>,
+}
+
+impl<T> Default for ParticleSpawner<T>
+where
+    T: Particle2dMaterial + Default,
+{
     fn default() -> Self {
         Self {
-            state: ParticleSpawnerState::default(),
-            effect: EffectHandle::default(),
-            effect_instance: ParticleEffectInstance::default(),
-            particle_store: ParticleStore::default(),
-            visibility: Visibility::default(),
-            inherited_visibility: InheritedVisibility::default(),
-            transform: Transform::default(),
-            global_transform: GlobalTransform::default(),
-            view_visibility: ViewVisibility::default(),
-            material: MaterialHandle::default(),
-            aabb: Aabb::default(),
-            sync: Default::default(),
+            material: Handle::default(),
         }
     }
 }

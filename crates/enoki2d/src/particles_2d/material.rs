@@ -1,7 +1,4 @@
-use super::{
-    update::Particle,
-    MaterialHandle, ParticleStore,
-};
+use super::{update::Particle, MaterialHandle, ParticleStore, WithParticles};
 use bevy::{
     core_pipeline::core_2d::{Transparent2d, CORE_2D_DEPTH_FORMAT},
     ecs::{
@@ -31,11 +28,11 @@ use bevy::{
             VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
-        sync_world::{MainEntity, RenderEntity},
+        sync_world::RenderEntity,
         texture::BevyDefault,
         view::{
-            ExtractedView, ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms,
-            VisibleEntities,
+            ExtractedView, RenderVisibleEntities, ViewTarget, ViewUniform, ViewUniformOffset,
+            ViewUniforms,
         },
         Extract, Render, RenderApp, RenderSet,
     },
@@ -215,8 +212,8 @@ fn queue_particles<M: Particle2dMaterial>(
     mut pipelines: ResMut<SpecializedRenderPipelines<Particle2dPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
     extract_particles: Res<ExtracedParticleSpawner<M>>,
-    z_orders: Query<(&ZOrder, &MainEntity)>,
-    views: Query<(Entity, &ExtractedView, &VisibleEntities, &Msaa)>,
+    z_orders: Query<&ZOrder>,
+    views: Query<(Entity, &ExtractedView, &RenderVisibleEntities, &Msaa)>,
     mut render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
 ) {
     let draw_particles = transparent_2d_draw_functions
@@ -234,29 +231,19 @@ fn queue_particles<M: Particle2dMaterial>(
         let key = Particle2dPipelineKey { mesh_key };
         let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
-        // for entity in visible_entities.iter::<With<ParticleEffectInstance>>() {
-        //     dbg!(entity);
-        // }
+        for (entity, main_entity) in visible_entities.iter::<WithParticles>() {
+            if extract_particles.particles.get(entity).is_none() {
+                continue;
+            }
 
-        for (entity, _) in extract_particles.particles.iter() {
-            //@todo: come up with a cleaner solution
-
-            // if visible_entities
-            //     .iter::<With<ParticleEffectInstance>>()
-            //     .find(|e| e.index() == entity.index())
-            //     .is_none()
-            // {
-            //     continue;
-            // }
-
-            let Ok((order, main_entity)) = z_orders.get(*entity) else {
+            let Ok(order) = z_orders.get(*entity) else {
                 return;
             };
 
             transparent_phase.add(Transparent2d {
                 extra_index: PhaseItemExtraIndex::NONE,
                 sort_key: **order,
-                entity: (*entity, main_entity.clone()),
+                entity: (*entity, *main_entity),
                 pipeline,
                 draw_function: draw_particles,
                 batch_range: 0..1,
@@ -307,9 +294,9 @@ pub struct InstanceMaterialData(Vec<InstanceData>);
 
 #[derive(Resource)]
 pub struct PreparedParticleMaterial<M: Particle2dMaterial> {
-    pub bindings: Vec<(u32, OwnedBindingResource)>,
     pub bind_group: BindGroup,
-    pub key: M::Data,
+    pub _bindings: Vec<(u32, OwnedBindingResource)>,
+    pub _key: M::Data,
 }
 
 impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
@@ -322,9 +309,9 @@ impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
     ) -> Result<Self, bevy::render::render_asset::PrepareAssetError<Self::SourceAsset>> {
         match material.as_bind_group(&pipeline.uniform_layout, render_device, param) {
             Ok(prepared) => Ok(PreparedParticleMaterial {
-                bindings: prepared.bindings,
                 bind_group: prepared.bind_group,
-                key: prepared.data,
+                _bindings: prepared.bindings,
+                _key: prepared.data,
             }),
             Err(AsBindGroupError::RetryNextUpdate) => {
                 Err(PrepareAssetError::RetryNextUpdate(material))

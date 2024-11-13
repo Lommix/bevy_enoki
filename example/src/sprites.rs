@@ -39,7 +39,6 @@ fn setup(
         Camera2d,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::BLACK),
-            hdr: true,
             ..default()
         },
         Bloom {
@@ -56,7 +55,7 @@ fn setup(
     cmd.spawn((
         Text::default(),
         TextFont {
-            font_size: 42.,
+            font_size: 24.,
             ..default()
         },
         FpsText,
@@ -87,12 +86,10 @@ fn spawn_particles(
         let y = (rand::random::<f32>() - 0.5) * 500.;
 
         cmd.spawn((
-            ParticleSpawnerBundle {
-                transform: Transform::from_xyz(x, y, index.0),
-                effect: server.load("firework.particle.ron").into(),
-                material: material.0.clone().into(),
-                ..default()
-            },
+            EffectHandle(server.load("firework.particle.ron")),
+            MaterialHandle(material.0.clone()),
+            ParticleSpawnerState::default(),
+            Transform::from_xyz(x, y, index.0),
             OneShot::Despawn,
         ));
 
@@ -119,7 +116,10 @@ fn show_fps(
         return;
     };
 
-    text.0 = format!("FPS: {:.1} Particles: {}", fps, particle_count);
+    text.0 = format!(
+        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {:.1}\nParticles: {}",
+        fps, particle_count
+    );
 }
 
 fn move_camera(
@@ -127,7 +127,7 @@ fn move_camera(
     inputs: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let x = inputs.pressed(KeyCode::ArrowLeft) as i32 - inputs.pressed(KeyCode::ArrowRight) as i32;
+    let x = inputs.pressed(KeyCode::ArrowRight) as i32 - inputs.pressed(KeyCode::ArrowLeft) as i32;
     let y = inputs.pressed(KeyCode::ArrowUp) as i32 - inputs.pressed(KeyCode::ArrowDown) as i32;
 
     let zoom = inputs.pressed(KeyCode::KeyO) as i32 - inputs.pressed(KeyCode::KeyI) as i32;
@@ -135,6 +135,6 @@ fn move_camera(
     cam.iter_mut().for_each(|mut t| {
         t.translation.x += x as f32 * 300. * time.delta_secs();
         t.translation.y += y as f32 * 300. * time.delta_secs();
-        t.scale = (t.scale + (zoom as f32) * 0.1).min(Vec3::splat(0.1));
+        t.scale = (t.scale + (zoom as f32) * 0.1).max(Vec3::splat(0.1));
     });
 }
