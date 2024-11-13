@@ -114,6 +114,7 @@ and thus added, if not provided.
 -   `ParticleEffectHandle`: A link the main effect asset.
 -   `ParticleStore`: Holds the particle data. You mostly won't interact with this.
 -   `OneShot`: A optional Tag component. That will either deactivate or delete the spawner, after first burst is done.
+-   `NoAutoAabb`: Opt out of auto Aabb calculation.
 
 ## Create a custom Material
 
