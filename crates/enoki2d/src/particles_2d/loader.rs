@@ -14,6 +14,9 @@ pub enum EmissionShape {
     Circle(f32),
 }
 
+/// holds the effect asset. Changing the Asset, will
+/// effect all spanwers using it. Instead use `ParticleEffectInstance`,
+/// which is a unique copy for each spawner,
 #[derive(Component, Reflect, Deref, DerefMut, Default)]
 #[reflect]
 pub struct EffectHandle(pub Handle<Particle2dEffect>);
@@ -24,7 +27,7 @@ impl From<Handle<Particle2dEffect>> for EffectHandle {
     }
 }
 
-/// The particle effect asset
+/// The particle effect asset.
 #[derive(Asset, TypePath, Deserialize, Serialize, Clone, Debug)]
 pub struct Particle2dEffect {
     pub spawn_rate: f32,
@@ -145,7 +148,7 @@ pub(crate) fn reload_effect(
             let Some(effect) = effects.get(&handle.0) else {
                 return;
             };
-            owner.0 = Some(Box::new(effect.clone()));
+            owner.0 = Some(effect.clone());
             cmd.entity(entity).remove::<ReloadEffectTag>();
         });
 }

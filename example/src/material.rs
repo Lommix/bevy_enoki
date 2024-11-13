@@ -49,7 +49,7 @@ fn setup(
     cmd.spawn((
         ParticleSpawnerState::default(),
         EffectHandle(server.load("ice.particle.ron")),
-        MaterialHandle(material_handle),
+        ParticleSpawner(material_handle),
     ));
 
     cmd.spawn((

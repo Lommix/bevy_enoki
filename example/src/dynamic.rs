@@ -69,7 +69,7 @@ fn setup(
     cmd.spawn((
         ParticleSpawnerState::default(),
         EffectHandle(server.load("base.particle.ron")),
-        MaterialHandle(material_handle),
+        ParticleSpawner(material_handle),
     ));
 }
 

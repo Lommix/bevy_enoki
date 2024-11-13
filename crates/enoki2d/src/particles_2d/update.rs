@@ -1,9 +1,6 @@
 use super::{loader::EffectHandle, prelude::EmissionShape, Particle2dEffect};
 use crate::values::Random;
-use bevy::{
-    prelude::*,
-    render::{primitives::Aabb, sync_world::SyncToRenderWorld},
-};
+use bevy::prelude::*;
 use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first
@@ -17,25 +14,18 @@ pub enum OneShot {
 
 /// Spawner states controls the spawner
 #[derive(Component, Clone, Debug, Reflect)]
-#[require(
-    EffectHandle,
-    ParticleEffectInstance,
-    ParticleStore,
-    Transform,
-    Visibility,
-    Aabb,
-    SyncToRenderWorld
-)]
 pub struct ParticleSpawnerState {
     pub max_particles: u32,
     pub active: bool,
     pub timer: Timer,
 }
 
-/// Each Spawner holds it's own copy of the effect,
-/// on hot reload these get synchonized
+/// A clone of the asset, unique to each spawner
+/// that can be mutated by any system.
+/// Any change to `Particle2dEffect` Asset will
+/// re-copy the effect.
 #[derive(Component, Deref, DerefMut, Default)]
-pub struct ParticleEffectInstance(pub Option<Box<Particle2dEffect>>);
+pub struct ParticleEffectInstance(pub Option<Particle2dEffect>);
 
 impl Default for ParticleSpawnerState {
     fn default() -> Self {
@@ -80,7 +70,7 @@ pub(crate) fn clone_effect(
                 return;
             };
 
-            effect_overwrites.0 = Some(Box::new(effect.clone()));
+            effect_overwrites.0 = Some(effect.clone());
         });
 }
 
@@ -140,16 +130,11 @@ pub(crate) fn update_spawner(
                 }
             }
 
-            // let mut min = Vec2::ZERO;
-            // let mut max = Vec2::ZERO;
-
             store.retain_mut(|particle| {
                 update_particle(particle, &effect, time.delta_secs());
                 particle.lifetime.tick(time.delta());
                 !particle.lifetime.finished()
             });
-
-            // aabb.half_extents = ((max - min).extend(0.) / 2.).into();
         },
     );
 }

@@ -1,4 +1,4 @@
-use super::{update::Particle, MaterialHandle, ParticleStore, WithParticles};
+use super::{update::Particle, ParticleSpawner, ParticleStore, WithParticles};
 use bevy::{
     core_pipeline::core_2d::{Transparent2d, CORE_2D_DEPTH_FORMAT},
     ecs::{
@@ -169,7 +169,7 @@ fn extract_particles<M: Particle2dMaterial>(
         Query<(
             &ParticleStore,
             &GlobalTransform,
-            &MaterialHandle<M>,
+            &ParticleSpawner<M>,
             &ViewVisibility,
             &RenderEntity,
         )>,

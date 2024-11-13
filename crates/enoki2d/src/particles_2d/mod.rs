@@ -28,7 +28,7 @@ pub mod prelude {
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
-    pub use super::MaterialHandle;
+    pub use super::ParticleSpawner;
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
@@ -148,23 +148,9 @@ fn calculcate_particle_bounds(mut cmd: Commands, spawners: Query<(Entity, &Parti
     });
 }
 
+/// The main particle spawner components
+/// has required components
 #[derive(Component, DerefMut, Deref, Clone)]
-pub struct MaterialHandle<T: Asset>(pub Handle<T>);
-
-impl<T: Asset> From<Handle<T>> for MaterialHandle<T> {
-    fn from(value: Handle<T>) -> Self {
-        Self(value)
-    }
-}
-
-impl<M: Particle2dMaterial + Default> Default for MaterialHandle<M> {
-    fn default() -> Self {
-        MaterialHandle(Handle::default())
-    }
-}
-
-/// the main spawner
-#[derive(Component)]
 #[require(
     ParticleSpawnerState,
     ParticleEffectInstance,
@@ -175,17 +161,16 @@ impl<M: Particle2dMaterial + Default> Default for MaterialHandle<M> {
     Aabb,
     SyncToRenderWorld
 )]
-pub struct ParticleSpawner<T: Particle2dMaterial> {
-    pub material: Handle<T>,
+pub struct ParticleSpawner<T: Asset>(pub Handle<T>);
+
+impl<T: Asset> From<Handle<T>> for ParticleSpawner<T> {
+    fn from(value: Handle<T>) -> Self {
+        Self(value)
+    }
 }
 
-impl<T> Default for ParticleSpawner<T>
-where
-    T: Particle2dMaterial + Default,
-{
+impl Default for ParticleSpawner<ColorParticle2dMaterial> {
     fn default() -> Self {
-        Self {
-            material: Handle::default(),
-        }
+        ParticleSpawner(Handle::default())
     }
 }

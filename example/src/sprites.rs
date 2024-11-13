@@ -87,8 +87,7 @@ fn spawn_particles(
 
         cmd.spawn((
             EffectHandle(server.load("firework.particle.ron")),
-            MaterialHandle(material.0.clone()),
-            ParticleSpawnerState::default(),
+            ParticleSpawner(material.0.clone()),
             Transform::from_xyz(x, y, index.0),
             OneShot::Despawn,
         ));
