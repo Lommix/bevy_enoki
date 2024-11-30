@@ -1,3 +1,7 @@
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![allow(rustdoc::redundant_explicit_links)]
+#![doc = include_str!("../../../README.md")]
+
 use self::prelude::{
     Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState, ParticleStore,
 };
@@ -33,7 +37,8 @@ pub mod prelude {
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::values::{Random, Rval};
     pub use super::{
-        EmissionShape, NoAutoAabb, Particle2dEffect, ParticleEffectHandle, ParticleSpawner,
+        EmissionShape, EnokiPlugin, NoAutoAabb, Particle2dEffect, ParticleEffectHandle,
+        ParticleSpawner,
     };
 }
 

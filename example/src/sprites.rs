@@ -2,14 +2,17 @@
 /// sprite example
 /// how to display a sprite animation/texture
 /// ----------------------------------------------
-use bevy::{core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, prelude::*};
+use bevy::{
+    core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, image::ImageSamplerDescriptor,
+    prelude::*,
+};
 use bevy_enoki::{prelude::*, EnokiPlugin};
 use std::time::Duration;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
-            default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
+            default_sampler: ImageSamplerDescriptor::nearest(),
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(EnokiPlugin)

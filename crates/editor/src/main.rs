@@ -4,8 +4,6 @@ use bevy::{
 };
 pub(crate) use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
-// use file::FileResource;
-// use wasm_bindgen::prelude::wasm_bindgen;
 
 // mod bindings;
 // mod file;
@@ -42,7 +40,7 @@ fn zoom(mut camera: Query<&mut Transform, With<Camera>>, mut events: EventReader
     })
 }
 
-fn setup(mut cmd: Commands) {
+fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<ColorParticle2dMaterial>>) {
     cmd.spawn((
         Camera2d,
         Camera {
@@ -55,6 +53,11 @@ fn setup(mut cmd: Commands) {
             intensity: 0.,
             ..default()
         },
+    ));
+
+    cmd.spawn((
+        ParticleSpawner(particle_materials.add(ColorParticle2dMaterial::default())),
+        Transform::from_xyz(-100., 0., 0.),
     ));
 }
 
@@ -74,84 +77,61 @@ fn gui(
         return;
     };
 
-    egui::Window::new("Particle Config")
-        .scroll([false, true])
-        .show(context.ctx_mut(), |ui| {
-            // file::file_panel(ui, &mut effect_instance, &mut file);
-            egui::Grid::new("one_shot")
-                .spacing([4., 4.])
-                .num_columns(2)
-                .min_col_width(100.)
-                .show(ui, |ui| {
-                    if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
-                        if *one_shot_mode {
-                            cmd.entity(entity).insert(OneShot::Deactivate);
-                        } else {
-                            cmd.entity(entity).remove::<OneShot>();
-                        }
-                    }
+    let central = egui::CentralPanel::default().frame(egui::Frame { ..default() });
 
-                    if ui
-                        .add_sized([100., 30.], egui::Button::new("Spawn Once"))
-                        .clicked()
-                    {
-                        state.active = true;
-                    }
-                });
+    central.show(context.ctx_mut(), |ui| {
+        egui::TopBottomPanel::top("Enoki particle editor").show_inside(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.item_spacing = [4., 4.].into();
+                ui.label("Enoki Editor");
 
-            if let Ok((mut camera, mut bloom)) = camera_query.get_single_mut() {
-                ui.collapsing("Scene Setting", |ui| {
-                    egui::Grid::new("scene_setting")
-                        .num_columns(2)
-                        .show(ui, |ui| {
-                            ui.label("Background");
+                if ui.button("export effect").clicked() {
+                    info!("exporting!");
+                }
 
-                            let mut color32 = match camera.clear_color {
-                                ClearColorConfig::Custom(color) => bevy_to_egui_color(color),
-                                _ => bevy_to_egui_color(Color::LinearRgba(LinearRgba::GREEN)),
-                            };
-                            egui::color_picker::color_edit_button_srgba(
-                                ui,
-                                &mut color32,
-                                egui::color_picker::Alpha::Opaque,
-                            );
-                            camera.clear_color =
-                                ClearColorConfig::Custom(egui_to_bevy_color(color32));
+                if ui.button("import effect").clicked() {
+                    info!("importing!");
+                }
 
-                            ui.end_row();
-                            ui.label("Bloom Settings");
-                            ui.end_row();
-
-                            ui.label("Intensity");
-                            ui.add(egui::Slider::new(&mut bloom.intensity, (0.)..=5.));
-                            ui.end_row();
-
-                            ui.label("Threshold");
-                            ui.add(egui::Slider::new(&mut bloom.prefilter.threshold, (0.)..=1.));
-                            ui.end_row();
-
-                            ui.label("Softness");
-                            ui.add(egui::Slider::new(
-                                &mut bloom.prefilter.threshold_softness,
-                                (0.)..=1.,
-                            ));
-                            ui.end_row();
-
-                            ui.label("low freq");
-                            ui.add(egui::Slider::new(&mut bloom.low_frequency_boost, (0.)..=1.));
-                            ui.end_row();
-
-                            ui.label("high freq");
-                            ui.add(egui::Slider::new(&mut bloom.high_pass_frequency, (0.)..=1.));
-                            ui.end_row();
-                        });
-                });
-            }
-
-            if let Some(effect) = effect_instance.0.as_mut() {
-                gui::config_gui(ui, effect, &mut state);
-            }
+                if ui.button("select shader").clicked() {
+                    info!("importing!");
+                }
+            });
         });
+
+        egui::SidePanel::right("Config").show_inside(ui, |ui| {
+            egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
+                egui::Grid::new("one_shot")
+                    .spacing([4., 4.])
+                    .num_columns(2)
+                    .min_col_width(100.)
+                    .show(ui, |ui| {
+                        if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
+                            if *one_shot_mode {
+                                cmd.entity(entity).insert(OneShot::Deactivate);
+                            } else {
+                                cmd.entity(entity).remove::<OneShot>();
+                            }
+                        }
+
+                        if ui
+                            .add_sized([100., 30.], egui::Button::new("Spawn Once"))
+                            .clicked()
+                        {
+                            state.active = true;
+                        }
+                    });
+
+                if let Ok((mut camera, mut bloom)) = camera_query.get_single_mut() {
+                    gui::scene_gui(ui, &mut camera, &mut bloom);
+                }
+
+                if let Some(effect) = effect_instance.0.as_mut() {
+                    gui::config_gui(ui, effect, &mut state);
+                }
+            });
+        });
+    });
 }
 
 pub(crate) fn bevy_to_egui_color(color: Color) -> Color32 {

@@ -7,6 +7,7 @@ description = "2D Particle system plugin, that works well on wasm and mobile"
 keywords = ["bevy", "particles", "shader", "2d", "particle"]
 repository = "https://github.com/Lommix/bevy_enoki"
 license = "MIT"
+readme = "README.md"
 
 [profile.dev]
 opt-level = 1
@@ -16,18 +17,18 @@ opt-level = 3
 
 [features]
 dev = [
-	"bevy/file_watcher",
-	"bevy/dynamic_linking",
-	"bevy/multi_threaded",
-	"bevy/embedded_watcher",
+  "bevy/file_watcher",
+  "bevy/dynamic_linking",
+  "bevy/multi_threaded",
+  "bevy/embedded_watcher",
 ]
 
 [dependencies]
-bevy = { version = "0.15.0-rc.3", default-features = false, features = [
-	"bevy_core_pipeline",
-	"bevy_asset",
-	"bevy_sprite",
-	"png",
+bevy = { version = "0.15", default-features = false, features = [
+  "bevy_core_pipeline",
+  "bevy_asset",
+  "bevy_sprite",
+  "png",
 ] }
 serde = { version = "1.0.197", features = ["derive"] }
 interpolation = "0.3.0"

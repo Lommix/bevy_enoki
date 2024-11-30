@@ -29,7 +29,6 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         sync_world::RenderEntity,
-        texture::BevyDefault,
         view::{
             ExtractedView, RenderVisibleEntities, ViewTarget, ViewUniform, ViewUniformOffset,
             ViewUniforms,
@@ -457,7 +456,9 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
         } else {
             TextureFormat::bevy_default()
         };
+
         RenderPipelineDescriptor {
+            zero_initialize_workgroup_memory: true,
             vertex: bevy::render::render_resource::VertexState {
                 shader: self.vertex_shader.clone(),
                 shader_defs: vec![],

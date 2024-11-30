@@ -1,9 +1,56 @@
 #![allow(unused)]
-
-use bevy::prelude::*;
+use bevy::{core_pipeline::bloom::Bloom, prelude::*};
 use bevy_egui::egui::{self, Ui, WidgetText};
 use bevy_enoki::prelude::*;
 use egui_plot::{Line, PlotPoints};
+
+use crate::{bevy_to_egui_color, egui_to_bevy_color};
+
+pub(crate) fn scene_gui(ui: &mut Ui, camera: &mut Camera, bloom: &mut Bloom) {
+    egui::Grid::new("scene_setting")
+        .num_columns(2)
+        .show(ui, |ui| {
+            ui.label("Background");
+
+            let mut color32 = match camera.clear_color {
+                ClearColorConfig::Custom(color) => bevy_to_egui_color(color),
+                _ => bevy_to_egui_color(Color::LinearRgba(LinearRgba::GREEN)),
+            };
+            egui::color_picker::color_edit_button_srgba(
+                ui,
+                &mut color32,
+                egui::color_picker::Alpha::Opaque,
+            );
+            camera.clear_color = ClearColorConfig::Custom(egui_to_bevy_color(color32));
+
+            ui.end_row();
+            ui.label("Bloom Settings");
+            ui.end_row();
+
+            ui.label("Intensity");
+            ui.add(egui::Slider::new(&mut bloom.intensity, (0.)..=5.));
+            ui.end_row();
+
+            ui.label("Threshold");
+            ui.add(egui::Slider::new(&mut bloom.prefilter.threshold, (0.)..=1.));
+            ui.end_row();
+
+            ui.label("Softness");
+            ui.add(egui::Slider::new(
+                &mut bloom.prefilter.threshold_softness,
+                (0.)..=1.,
+            ));
+            ui.end_row();
+
+            ui.label("low freq");
+            ui.add(egui::Slider::new(&mut bloom.low_frequency_boost, (0.)..=1.));
+            ui.end_row();
+
+            ui.label("high freq");
+            ui.add(egui::Slider::new(&mut bloom.high_pass_frequency, (0.)..=1.));
+            ui.end_row();
+        });
+}
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum Shape {
