@@ -152,9 +152,9 @@ pub struct NoAutoAabb;
     Aabb,
     SyncToRenderWorld
 )]
-pub struct ParticleSpawner<T: Asset>(pub Handle<T>);
+pub struct ParticleSpawner<T: Particle2dMaterial>(pub Handle<T>);
 
-impl<T: Asset> From<Handle<T>> for ParticleSpawner<T> {
+impl<T: Particle2dMaterial> From<Handle<T>> for ParticleSpawner<T> {
     fn from(value: Handle<T>) -> Self {
         Self(value)
     }

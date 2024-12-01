@@ -23,7 +23,7 @@ The default material allows not only for custom textures, but also sprite sheet 
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
-| 0.15 |      0.3.0 |
+| 0.15 |      0.3.1 |
 | 0.14 |      0.2.2 |
 | 0.13 |        0.1 |
 

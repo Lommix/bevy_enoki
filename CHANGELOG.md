@@ -1,3 +1,7 @@
+# 0.3.1
+
+-   Restricted `ParticleSpawner` Asset Handle to a `Particle2dMaterial`
+
 # 0.3.0 Release - Bevy 0.15
 
 ## Renaming
