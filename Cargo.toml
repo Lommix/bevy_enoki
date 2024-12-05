@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/enoki2d", "crates/editor", "example"]
+members = ["crates/enoki2d", "crates/enoki2d_editor", "example"]
 
 [profile.dev]
 opt-level = 1

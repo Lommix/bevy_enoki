@@ -1,0 +1,32 @@
+[package]
+name = "enoki2d_editor"
+authors = ["Lorenz Mielke"]
+keywords = ["bevy", "particles", "shader", "2d", "particle"]
+repository = "https://github.com/Lommix/bevy_enoki"
+license = "MIT"
+readme = "README.md"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[dependencies]
+bevy_egui = "0.31.0"
+anyhow = "1.0.82"
+bevy = "0.15.0"
+egui_plot = "0.29"
+bevy_enoki = { path = "../enoki2d" }
+crossbeam = { version = "0.8.4", features = [
+  "crossbeam-deque",
+  "crossbeam-channel",
+] }
+# futures-lite = "2.3.0"
+rfd = "0.14.1"
+ron = "0.8.1"
+serde = { version = "1.0.197", features = ["derive"] }
+tracing-subscriber = "0.3.18"
+bevy_pancam = "0.16.0"
