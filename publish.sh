@@ -1,12 +1,20 @@
 #! /bin/bash
-tmp=$(mktemp -d)
+enoki_tmp=$(mktemp -d)
+editor_tmp=$(mktemp -d)
 
-echo "$tmp"
+cp -r crates/enoki2d/* "$enoki_tmp"/.
+cp -r LICENSE-MIT LICENSE-APACHE README.md "$enoki_tmp"/.
 
-# enoki 2d
-cp -r crates/enoki2d/* "$tmp"/.
-cp -r LICENSE-MIT LICENSE-APACHE README.md "$tmp"/.
-sed -i 's|"../../../README.md"|"../README.md"|g' "$tmp"/src/lib.rs
+cp -r crates/enoki2d_editor/* "$editor_tmp"/.
+cp -r LICENSE-MIT LICENSE-APACHE "$editor_tmp"/.
 
-cd $tmp && cargo publish
-rm -rf "$tmp"
+sed -i 's|"../../../README.md"|"../README.md"|g' "$enoki_tmp"/src/lib.rs
+
+version=$(grep "^version" $enoki_tmp/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+sed -i '/^bevy_enoki/c\bevy_enoki="'${version}'"' "$editor_tmp"/Cargo.toml
+
+cd $hui_tmp && cargo publish
+cd $widget_tmp && cargo publish
+
+rm -rf "$enoki_tmp"
+rm -rf "$editor_tmp"

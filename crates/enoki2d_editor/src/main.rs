@@ -2,7 +2,7 @@ use bevy::{core_pipeline::bloom::Bloom, log::LogPlugin, prelude::*};
 use bevy_egui::egui::FontId;
 use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
-use bevy_pancam::{PanCam, PanCamPlugin};
+use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
 use file::{EffectChannel, TextureChannel};
 use log::LogBuffer;
 
@@ -45,7 +45,10 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
             ..default()
         },
         Msaa::Off,
-        PanCam::default(),
+        PanCam {
+            grab_buttons: vec![MouseButton::Middle],
+            ..default()
+        },
     ));
 
     cmd.spawn((
@@ -131,14 +134,15 @@ fn gui(
 
         egui::TopBottomPanel::bottom("log").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.collapsing("log", |ui| {
+                ui.collapsing("Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom", |ui| {
                     for entry in logs.iter() {
                         let level = entry.metadata.level().to_string();
                         let msg = format!("[{}]: {}", level, entry.message);
                         ui.label(msg);
                     }
                 });
-                if ui.button("clear").clicked() {
+
+                if ui.button("Clear Log").clicked() {
                     logs.clear();
                 }
             });

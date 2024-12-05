@@ -23,13 +23,25 @@ The default material allows not only for custom textures, but also sprite sheet 
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
-| 0.15 |      0.3.1 |
+| 0.15 |      0.3.2 |
 | 0.14 |      0.2.2 |
 | 0.13 |        0.1 |
 
 ## Editor
 
-[WIP]
+Enoki has a feature rich Editor.
+
+![editor](docs/editor.jpg)
+
+- load and save effect assets.
+- watch a shader file with hot reload, your editor of choice.
+- load a texture.
+- play with values.
+
+Get started by installing it via cargo
+```
+cargo install enoki2d_editor
+```
 
 ---
 
@@ -109,12 +121,12 @@ fn setup(
 There 4 main components you can play with. These are required by the `ParticleSpawner`
 and thus added, if not provided.
 
--   `ParticleSpawnerState`: Controls the spawner state.
--   `ParticleEffectInstance`: A unique clone of the effect. Can be changed at runtime, only affects the spawner attached to. Will reload, when the asset changes.
--   `ParticleEffectHandle`: A link the main effect asset.
--   `ParticleStore`: Holds the particle data. You mostly won't interact with this.
--   `OneShot`: A optional Tag component. That will either deactivate or delete the spawner, after first burst is done.
--   `NoAutoAabb`: Opt out of auto Aabb calculation.
+- `ParticleSpawnerState`: Controls the spawner state.
+- `ParticleEffectInstance`: A unique clone of the effect. Can be changed at runtime, only affects the spawner attached to. Will reload, when the asset changes.
+- `ParticleEffectHandle`: A link the main effect asset.
+- `ParticleStore`: Holds the particle data. You mostly won't interact with this.
+- `OneShot`: A optional Tag component. That will either deactivate or delete the spawner, after first burst is done.
+- `NoAutoAabb`: Opt out of auto Aabb calculation.
 
 ## Create a custom Material
 
