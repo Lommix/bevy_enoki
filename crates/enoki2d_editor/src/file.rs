@@ -1,4 +1,10 @@
-use bevy::{prelude::*, tasks::AsyncComputeTaskPool, time::common_conditions::on_timer};
+use bevy::{
+    asset::RenderAssetUsages,
+    image::{CompressedImageFormats, ImageSampler},
+    prelude::*,
+    tasks::AsyncComputeTaskPool,
+    time::common_conditions::on_timer,
+};
 use bevy_enoki::prelude::*;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use rfd::AsyncFileDialog;
@@ -8,11 +14,21 @@ pub struct FileManagerPlugin;
 impl Plugin for FileManagerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EffectChannel>();
+        app.init_resource::<TextureChannel>();
         app.add_systems(
             Update,
-            file_watcher.run_if(on_timer(Duration::from_millis(50))),
+            (effect_file_watcher, texture_file_watcher).run_if(on_timer(Duration::from_millis(50))),
         );
     }
+}
+
+pub(crate) const SPRITE_TEXTURE: Handle<Image> = Handle::weak_from_u128(10834031378301313896813738);
+
+#[derive(Resource)]
+pub(crate) struct TextureChannel {
+    pub last_file_name: String,
+    pub send: Sender<TextureFileWrapper>,
+    rec: Receiver<TextureFileWrapper>,
 }
 
 #[derive(Resource)]
@@ -20,6 +36,22 @@ pub(crate) struct EffectChannel {
     pub last_file_name: String,
     pub send: Sender<EffectFileWrapper>,
     rec: Receiver<EffectFileWrapper>,
+}
+
+pub struct TextureFileWrapper {
+    file_name: String,
+    image: Image,
+}
+
+impl Default for TextureChannel {
+    fn default() -> Self {
+        let (tx, rx) = bounded(1);
+        Self {
+            last_file_name: "load texture".into(),
+            send: tx,
+            rec: rx,
+        }
+    }
 }
 
 pub struct EffectFileWrapper {
@@ -38,7 +70,7 @@ impl Default for EffectChannel {
     }
 }
 
-fn file_watcher(
+fn effect_file_watcher(
     mut effect_channel: ResMut<EffectChannel>,
     mut instances: Query<&mut ParticleEffectInstance>,
 ) {
@@ -52,7 +84,69 @@ fn file_watcher(
     });
 }
 
-pub fn open_load_dialog(sender: Sender<EffectFileWrapper>) {
+fn texture_file_watcher(
+    mut texture_channel: ResMut<TextureChannel>,
+    mut images: ResMut<Assets<Image>>,
+    mut materials: ResMut<Assets<crate::shader::SpriteMaterial>>,
+) {
+    let Ok(texture_wrapper) = texture_channel.rec.try_recv() else {
+        return;
+    };
+
+    texture_channel.last_file_name = texture_wrapper.file_name;
+    images.insert(&SPRITE_TEXTURE, texture_wrapper.image);
+
+    materials
+        .iter_mut()
+        .for_each(|(_, mat)| mat.texture = Some(SPRITE_TEXTURE));
+}
+
+pub fn open_load_image_dialog(sender: Sender<TextureFileWrapper>) {
+    AsyncComputeTaskPool::get()
+        .spawn(async move {
+            match AsyncFileDialog::new()
+                .set_title("load effect assset")
+                .add_filter("png", &["png"])
+                .pick_file()
+                .await
+            {
+                Some(handle) => {
+                    let bytes = handle.read().await;
+
+                    let image = match Image::from_buffer(
+                        &bytes,
+                        bevy::image::ImageType::Format(ImageFormat::Png),
+                        CompressedImageFormats::NONE,
+                        false,
+                        ImageSampler::nearest(),
+                        RenderAssetUsages::RENDER_WORLD,
+                    ) {
+                        Ok(img) => img,
+                        Err(err) => {
+                            error!("Failed to load image!\n\n {:?}", err);
+                            return;
+                        }
+                    };
+
+                    let packed_effect = TextureFileWrapper {
+                        image,
+                        file_name: handle.file_name(),
+                    };
+
+                    match sender.send(packed_effect) {
+                        Ok(_) => (),
+                        Err(err) => {
+                            error!("Channel failed!\n\n {:?}", err);
+                        }
+                    };
+                }
+                None => (),
+            }
+        })
+        .detach();
+}
+
+pub fn open_load_effect_dialog(sender: Sender<EffectFileWrapper>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
             match AsyncFileDialog::new()
@@ -92,7 +186,7 @@ pub fn open_load_dialog(sender: Sender<EffectFileWrapper>) {
         .detach();
 }
 
-pub fn open_save_dialog(effect: Particle2dEffect, file_name: String) {
+pub fn open_save_effect_dialog(effect: Particle2dEffect, file_name: String) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
             match AsyncFileDialog::new()

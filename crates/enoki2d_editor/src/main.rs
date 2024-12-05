@@ -3,7 +3,7 @@ use bevy_egui::egui::FontId;
 use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};
-use file::EffectChannel;
+use file::{EffectChannel, TextureChannel};
 use log::LogBuffer;
 
 mod file;
@@ -65,6 +65,7 @@ fn gui(
     mut camera_query: Query<(&mut Camera, &mut Bloom)>,
     mut one_shot_mode: Local<bool>,
     effect_channel: Res<EffectChannel>,
+    texture_channel: Res<TextureChannel>,
     mut logs: ResMut<LogBuffer>,
     watcher: Res<shader::ShaderWatch>,
 ) {
@@ -100,12 +101,12 @@ fn gui(
                 ui.separator();
                 if ui.button("Save Effect").clicked() {
                     let effect = effect_instance.0.clone().unwrap_or_default();
-                    file::open_save_dialog(effect, effect_channel.last_file_name.clone());
+                    file::open_save_effect_dialog(effect, effect_channel.last_file_name.clone());
                 }
 
                 ui.separator();
                 if ui.button("Load Effect").clicked() {
-                    file::open_load_dialog(effect_channel.send.clone());
+                    file::open_load_effect_dialog(effect_channel.send.clone());
                 }
 
                 ui.separator();
@@ -119,6 +120,11 @@ fn gui(
                 ui.separator();
                 if ui.button("New Shader").clicked() {
                     shader::open_shader_save(watcher.clone());
+                }
+
+                ui.separator();
+                if ui.button(&texture_channel.last_file_name).clicked() {
+                    file::open_load_image_dialog(texture_channel.send.clone());
                 }
             });
         });

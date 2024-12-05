@@ -96,9 +96,8 @@ pub const DEFAULT_SHADER_STR: &'static str = r#"
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    var out = in.color;
-    // go wild
-    return out;
+    let sample = textureSample(texture, texture_sampler, in.uv);
+    return sample * in.color;
 }
 "#;
 #[derive(AsBindGroup, Default, Clone, Asset, TypePath)]
