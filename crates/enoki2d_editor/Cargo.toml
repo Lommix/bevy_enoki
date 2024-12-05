@@ -3,6 +3,7 @@ name = "enoki2d_editor"
 version = "0.1.0"
 authors = ["Lorenz Mielke"]
 keywords = ["bevy", "particles", "shader", "2d", "particle"]
+description = "Particle editor for the bevy_enoki crate"
 repository = "https://github.com/Lommix/bevy_enoki"
 license = "MIT"
 readme = "README.md"

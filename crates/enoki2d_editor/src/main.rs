@@ -2,7 +2,7 @@ use bevy::{core_pipeline::bloom::Bloom, log::LogPlugin, prelude::*};
 use bevy_egui::egui::FontId;
 use bevy_egui::egui::{self, Color32};
 use bevy_enoki::prelude::*;
-use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
+use bevy_pancam::{PanCam, PanCamPlugin};
 use file::{EffectChannel, TextureChannel};
 use log::LogBuffer;
 

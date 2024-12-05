@@ -13,8 +13,8 @@ sed -i 's|"../../../README.md"|"../README.md"|g' "$enoki_tmp"/src/lib.rs
 version=$(grep "^version" $enoki_tmp/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
 sed -i '/^bevy_enoki/c\bevy_enoki="'${version}'"' "$editor_tmp"/Cargo.toml
 
-cd $hui_tmp && cargo publish
-cd $widget_tmp && cargo publish
+cd $enoki_tmp && cargo publish
+cd $editor_tmp && cargo publish
 
 rm -rf "$enoki_tmp"
 rm -rf "$editor_tmp"
