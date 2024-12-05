@@ -203,18 +203,18 @@ pub struct Particle2dEffect {
     pub gravity_speed: Option<Rval<f32>>,
     pub linear_damp: Option<Rval<f32>>,
     pub angular_damp: Option<Rval<f32>>,
-    pub scale_curve: Option<Curve<f32>>,
-    pub color_curve: Option<Curve<LinearRgba>>,
+    pub scale_curve: Option<MultiCurve<f32>>,
+    pub color_curve: Option<MultiCurve<LinearRgba>>,
 }
 ```
 
-This how you create a `Curve`. Currently, Supports `LinearRgba` and `f32`.
+This how you create a `MultiCurve`. Currently, Supports `LinearRgba` and `f32`.
 `RVal` stands for any Value with a randomness property between 0 - 1.
 
 ```rust
-let curve = Curve::new()
+let curve = MultiCurve::new()
     .with_point(LinearRgba::RED, 0.0, None)
-    .with_point(LinearRgba::BLUE, 1.0, Some(bevy_enoki::prelude::EaseFunction::SineInOut));
+    .with_point(LinearRgba::BLUE, 1.0, Some(EaseFunction::SineInOut));
 
 // max 1.0, randomness of 0.1 (0.9 - 1.1)
 let rval = Rval::new(1.0, 0.1);

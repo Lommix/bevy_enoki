@@ -30,7 +30,7 @@ mod values;
 #[allow(unused)]
 pub mod prelude {
     pub use super::color::ColorParticle2dMaterial;
-    pub use super::curve::{Curve, EaseFunction, LerpThat};
+    pub use super::curve::{MultiCurve/* , ParticleEaseFunction */, LerpThat};
     pub use super::loader::ParticleEffectLoader;
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
@@ -205,8 +205,8 @@ pub struct Particle2dEffect {
     pub gravity_speed: Option<Rval<f32>>,
     pub linear_damp: Option<Rval<f32>>,
     pub angular_damp: Option<Rval<f32>>,
-    pub scale_curve: Option<curve::Curve<f32>>,
-    pub color_curve: Option<curve::Curve<LinearRgba>>,
+    pub scale_curve: Option<curve::MultiCurve<f32>>,
+    pub color_curve: Option<curve::MultiCurve<LinearRgba>>,
 }
 
 impl Default for Particle2dEffect {

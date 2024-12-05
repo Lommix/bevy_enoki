@@ -1,100 +1,15 @@
 use bevy::prelude::*;
-use interpolation::Ease;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-pub enum EaseFunction {
-    QuadraticIn,
-    QuadraticOut,
-    QuadraticInOut,
-    CubicIn,
-    CubicOut,
-    CubicInOut,
-    QuarticIn,
-    QuarticOut,
-    QuarticInOut,
-    QuinticIn,
-    QuinticOut,
-    QuinticInOut,
-    SineIn,
-    SineOut,
-    SineInOut,
-    CircularIn,
-    CircularOut,
-    CircularInOut,
-    ExponentialIn,
-    ExponentialOut,
-    ExponentialInOut,
-    ElasticIn,
-    ElasticOut,
-    ElasticInOut,
-    BackIn,
-    BackOut,
-    BackInOut,
-    BounceIn,
-    BounceOut,
-    BounceInOut,
-}
-
-impl From<&EaseFunction> for interpolation::EaseFunction {
-    fn from(value: &EaseFunction) -> Self {
-        match value {
-            EaseFunction::QuadraticIn => interpolation::EaseFunction::QuadraticIn,
-            EaseFunction::QuadraticOut => interpolation::EaseFunction::QuadraticOut,
-            EaseFunction::QuadraticInOut => interpolation::EaseFunction::QuadraticInOut,
-            EaseFunction::CubicIn => interpolation::EaseFunction::CubicIn,
-            EaseFunction::CubicOut => interpolation::EaseFunction::CubicOut,
-            EaseFunction::CubicInOut => interpolation::EaseFunction::CubicInOut,
-            EaseFunction::QuarticIn => interpolation::EaseFunction::QuarticIn,
-            EaseFunction::QuarticOut => interpolation::EaseFunction::QuarticOut,
-            EaseFunction::QuarticInOut => interpolation::EaseFunction::QuarticInOut,
-            EaseFunction::QuinticIn => interpolation::EaseFunction::QuinticIn,
-            EaseFunction::QuinticOut => interpolation::EaseFunction::QuinticOut,
-            EaseFunction::QuinticInOut => interpolation::EaseFunction::QuinticInOut,
-            EaseFunction::SineIn => interpolation::EaseFunction::SineIn,
-            EaseFunction::SineOut => interpolation::EaseFunction::SineOut,
-            EaseFunction::SineInOut => interpolation::EaseFunction::SineInOut,
-            EaseFunction::CircularIn => interpolation::EaseFunction::CircularIn,
-            EaseFunction::CircularOut => interpolation::EaseFunction::CircularOut,
-            EaseFunction::CircularInOut => interpolation::EaseFunction::CircularInOut,
-            EaseFunction::ExponentialIn => interpolation::EaseFunction::ExponentialIn,
-            EaseFunction::ExponentialOut => interpolation::EaseFunction::ExponentialOut,
-            EaseFunction::ExponentialInOut => interpolation::EaseFunction::ExponentialInOut,
-            EaseFunction::ElasticIn => interpolation::EaseFunction::ElasticIn,
-            EaseFunction::ElasticOut => interpolation::EaseFunction::ElasticOut,
-            EaseFunction::ElasticInOut => interpolation::EaseFunction::ElasticInOut,
-            EaseFunction::BackIn => interpolation::EaseFunction::BackIn,
-            EaseFunction::BackOut => interpolation::EaseFunction::BackOut,
-            EaseFunction::BackInOut => interpolation::EaseFunction::BackInOut,
-            EaseFunction::BounceIn => interpolation::EaseFunction::BounceIn,
-            EaseFunction::BounceOut => interpolation::EaseFunction::BounceOut,
-            EaseFunction::BounceInOut => interpolation::EaseFunction::BounceInOut,
-        }
-    }
-}
-
 #[derive(Deserialize, Default, Serialize, Debug, Clone)]
-pub struct Curve<T>
+pub struct MultiCurve<T>
 where
     T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
 {
     pub points: Vec<(T, f32, Option<EaseFunction>)>,
 }
 
-impl<T> bevy::prelude::Curve<T> for Curve<T>
-where
-    T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
-{
-    fn domain(&self) -> Interval {
-        Interval::new(0., 1.).unwrap()
-    }
-
-    fn sample_unchecked(&self, t: f32) -> T {
-        self.lerp(t)
-    }
-}
-
-impl<T> Curve<T>
+impl<T> MultiCurve<T>
 where
     T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
 {
@@ -139,7 +54,9 @@ where
         let progress = (position - left_pos) / (right_pos - left_pos);
 
         let eased_progress = match &self.points[right_index].2 {
-            Some(easing) => progress.calc(interpolation::EaseFunction::from(easing)),
+            Some(easing) => EasingCurve::new(0., 1., *easing)
+                .sample(progress)
+                .unwrap_or_default(),
             None => progress,
         };
 

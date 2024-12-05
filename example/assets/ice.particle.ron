@@ -1,10 +1,10 @@
 (
     spawn_rate: 0.05,
-    spawn_amount:  100,
-	emission_shape: Circle(120),
+    spawn_amount: 100,
+    emission_shape: Circle(120),
     lifetime: (2.0, 0.5),
     direction: Some(((0, 1), 0.5)),
-    linear_speed: Some((300,  1)),
+    linear_speed: Some((300, 1)),
     linear_acceleration: Some((0, 0)),
     angular_speed: Some((5, 0.5)),
     angular_acceleration: Some((0, 0)),
@@ -14,24 +14,16 @@
     linear_damp: Some((20, 0.8)),
     angular_damp: Some((10, 0)),
     scale_curve: Some(
-        Curve(
+        MultiCurve(
             points: [
                 (50, 0, None),
-                (
-                    300,
-                    0.5,
-                    Some(BounceOut),
-                ),
-                (
-                    10,
-                    1.0,
-                    None,
-                ),
+                (300, 0.5, None),
+                (10, 1.0, None),
             ],
         ),
     ),
     color_curve: Some(
-        Curve(
+        MultiCurve(
             points: [
                 (
                     LinearRgba(
@@ -46,7 +38,7 @@
                 (
                     LinearRgba(
                         red: 0.0,
-                        green:0.0,
+                        green: 0.0,
                         blue: 10.0,
                         alpha: 1.0,
                     ),
@@ -56,7 +48,7 @@
                 (
                     LinearRgba(
                         red: 2.0,
-                        green:2.0,
+                        green: 2.0,
                         blue: 5.0,
                         alpha: 1.0,
                     ),
