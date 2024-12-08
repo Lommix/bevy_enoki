@@ -92,7 +92,6 @@ pub(crate) fn update_spawner(
         Entity,
         &mut ParticleStore,
         &mut ParticleSpawnerState,
-        &ViewVisibility,
         &ParticleEffectInstance,
         &GlobalTransform,
     )>,
@@ -100,11 +99,7 @@ pub(crate) fn update_spawner(
     time: Res<Time>,
 ) {
     particles.par_iter_mut().for_each(
-        |(entity, mut store, mut state, visibility, effect_instance, transform)| {
-            if !visibility.get() {
-                return;
-            }
-
+        |(entity, mut store, mut state, effect_instance, transform)| {
             if state.max_particles <= store.0.len() as u32 {
                 return;
             }

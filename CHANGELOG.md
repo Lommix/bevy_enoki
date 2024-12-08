@@ -1,3 +1,7 @@
+# 0.3.3
+
+- Particles now update (not render) if not visible by default.
+
 # 0.3.2
 
 - switched to bevy's new curve crate for interpolation.
