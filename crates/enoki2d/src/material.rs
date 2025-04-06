@@ -1,4 +1,6 @@
-use super::{update::Particle, ParticleSpawner, ParticleStore, WithParticles};
+use crate::RenderParticleTag;
+
+use super::{update::Particle, ParticleSpawner, ParticleStore};
 use bevy::{
     core_pipeline::core_2d::{Transparent2d, CORE_2D_DEPTH_FORMAT},
     ecs::{
@@ -212,15 +214,15 @@ fn queue_particles<M: Particle2dMaterial>(
     pipeline_cache: Res<PipelineCache>,
     extract_particles: Res<ExtracedParticleSpawner<M>>,
     z_orders: Query<&ZOrder>,
-    views: Query<(Entity, &ExtractedView, &RenderVisibleEntities, &Msaa)>,
+    views: Query<(&ExtractedView, &RenderVisibleEntities, &Msaa)>,
     mut render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
 ) {
     let draw_particles = transparent_2d_draw_functions
         .read()
         .id::<DrawParticle2d<M>>();
 
-    for (view_entity, view, visible_entities, msaa) in &views {
-        let Some(transparent_phase) = render_phases.get_mut(&view_entity) else {
+    for (view, visible_entities, msaa) in &views {
+        let Some(transparent_phase) = render_phases.get_mut(&view.retained_view_entity) else {
             continue;
         };
 
@@ -230,7 +232,8 @@ fn queue_particles<M: Particle2dMaterial>(
         let key = Particle2dPipelineKey { mesh_key };
         let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
-        for (entity, main_entity) in visible_entities.iter::<WithParticles>() {
+        for (entity, main_entity) in visible_entities.get::<RenderParticleTag>().iter() {
+
             if extract_particles.particles.get(entity).is_none() {
                 continue;
             }
@@ -240,7 +243,9 @@ fn queue_particles<M: Particle2dMaterial>(
             };
 
             transparent_phase.add(Transparent2d {
-                extra_index: PhaseItemExtraIndex::NONE,
+                extracted_index: 0,
+                indexed: false,
+                extra_index: PhaseItemExtraIndex::None,
                 sort_key: **order,
                 entity: (*entity, *main_entity),
                 pipeline,
@@ -304,12 +309,13 @@ impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
 
     fn prepare_asset(
         material: Self::SourceAsset,
+        _: AssetId<Self::SourceAsset>,
         (render_device, pipeline, param): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, bevy::render::render_asset::PrepareAssetError<Self::SourceAsset>> {
         match material.as_bind_group(&pipeline.uniform_layout, render_device, param) {
             Ok(prepared) => Ok(PreparedParticleMaterial {
                 bind_group: prepared.bind_group,
-                _bindings: prepared.bindings,
+                _bindings: prepared.bindings.0,
                 _key: prepared.data,
             }),
             Err(AsBindGroupError::RetryNextUpdate) => {

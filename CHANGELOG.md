@@ -1,3 +1,7 @@
+# 0.4.0
+
+- bevy 0.16 update. No breaking changings.
+
 # 0.3.3
 
 - Particles now update (not render) if not visible by default.

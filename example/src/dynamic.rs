@@ -3,7 +3,7 @@
 /// how to update effect behavior dynamiclly
 /// ----------------------------------------------
 use bevy::{
-    core_pipeline::bloom::Bloom, diagnostic::DiagnosticsStore, image::ImageSamplerDescriptor,
+    core_pipeline::bloom::Bloom, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, image::ImageSamplerDescriptor,
     prelude::*,
 };
 use bevy_enoki::{prelude::*, EnokiPlugin};
@@ -14,7 +14,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: ImageSamplerDescriptor::nearest(),
         }))
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_plugins(EnokiPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (show_fps, change_dynamic, move_camera))

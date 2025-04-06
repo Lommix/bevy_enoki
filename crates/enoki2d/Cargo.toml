@@ -1,6 +1,6 @@
 [package]
 name = "bevy_enoki"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "2D Particle system plugin, that works well on wasm and mobile"
@@ -24,7 +24,7 @@ dev = [
 ]
 
 [dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.16.0-rc.1", default-features = false, features = [
   "bevy_core_pipeline",
   "bevy_asset",
   "bevy_sprite",
