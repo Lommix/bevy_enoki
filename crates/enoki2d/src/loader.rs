@@ -59,7 +59,7 @@ pub(crate) fn on_asset_loaded(
             .iter()
             .filter(|(_, handle)| handle.id() == *assset_id)
             .for_each(|(entity, _)| {
-                if let Some(mut cmd) = cmd.get_entity(entity) {
+                if let Ok(mut cmd) = cmd.get_entity(entity) {
                     cmd.insert(ReloadEffectTag);
                 }
             });

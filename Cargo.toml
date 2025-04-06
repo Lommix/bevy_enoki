@@ -4,3 +4,6 @@ members = ["crates/enoki2d", "crates/enoki2d_editor", "example"]
 
 [profile.dev]
 opt-level = 1
+
+[workspace.dependencies]
+bevy = "0.16.0-rc.3"

@@ -14,7 +14,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: ImageSamplerDescriptor::nearest(),
         }))
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_plugins(EnokiPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (show_fps, spawn_particles, move_camera))

@@ -1,6 +1,6 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
-use bevy::{prelude::*, render::primitives::Aabb};
+use bevy::{prelude::*, render::{primitives::Aabb, view}};
 use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first

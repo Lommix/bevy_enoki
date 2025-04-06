@@ -7,12 +7,12 @@ use self::prelude::{
 };
 use crate::sprite::SpriteParticle2dMaterial;
 use bevy::{
-    asset::load_internal_asset,
+    asset::{load_internal_asset, uuid::uuid, weak_handle},
     prelude::*,
     render::{
         primitives::Aabb,
         sync_world::SyncToRenderWorld,
-        view::{check_visibility, VisibilitySystems},
+        view::{self, VisibilityClass, VisibilitySystems},
     },
 };
 use color::ColorParticle2dMaterial;
@@ -30,7 +30,7 @@ mod values;
 #[allow(unused)]
 pub mod prelude {
     pub use super::color::ColorParticle2dMaterial;
-    pub use super::curve::{MultiCurve/* , ParticleEaseFunction */, LerpThat};
+    pub use super::curve::{LerpThat, MultiCurve /* , ParticleEaseFunction */};
     pub use super::loader::ParticleEffectLoader;
     pub use super::material::{Particle2dMaterial, Particle2dMaterialPlugin};
     pub use super::sprite::SpriteParticle2dMaterial;
@@ -126,18 +126,22 @@ impl Plugin for EnokiPlugin {
             PostUpdate,
             (
                 update::calculcate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
-                check_visibility::<WithParticles>.in_set(VisibilitySystems::CheckVisibility),
+                // check_visibility.in_set(VisibilitySystems::CheckVisibility),
             ),
         );
     }
 }
 
-pub type WithParticles = With<ParticleSpawnerState>;
-
 /// adding this component will disabled auto
 /// aabb caluclation. Aabb resolves to it's default size.
 #[derive(Component)]
 pub struct NoAutoAabb;
+
+/// tag component for visibilty check
+#[derive(Clone, Component, Default)]
+#[require(VisibilityClass)]
+#[component(on_add = view::add_visibility_class::<RenderParticleTag>)]
+pub struct RenderParticleTag;
 
 /// The main particle spawner components
 /// has required components
@@ -150,7 +154,8 @@ pub struct NoAutoAabb;
     Transform,
     Visibility,
     Aabb,
-    SyncToRenderWorld
+    SyncToRenderWorld,
+    RenderParticleTag
 )]
 pub struct ParticleSpawner<T: Particle2dMaterial>(pub Handle<T>);
 
