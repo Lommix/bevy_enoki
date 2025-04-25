@@ -16,11 +16,23 @@ pub trait Random<V> {
 
 impl Random<Vec2> for Rval<Vec2> {
     fn rand(&self) -> Vec2 {
+        // In the scale of particles this function is quite expensive
+        // Skip, if not needed.
+        if self.1 <= 0.0001 {
+            return self.0;
+        }
+
         let max_angle = 2. * std::f32::consts::PI * self.1;
         let random_angle = (rand::random::<f32>() - 0.5) * max_angle;
 
-        let angle = self.0.to_angle() + random_angle;
-        Vec2::new(angle.cos(), angle.sin())
+        let (sin, cos) = random_angle.sin_cos();
+        Vec2::new(
+            self.0.x * cos - self.0.y * sin,
+            self.0.x * sin + self.0.y * cos,
+        )
+
+        // let angle = self.0.to_angle() + random_angle;
+        // Vec2::new(angle.cos(), angle.sin())
     }
 }
 

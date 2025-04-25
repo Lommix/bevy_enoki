@@ -7,7 +7,7 @@ use self::prelude::{
 };
 use crate::sprite::SpriteParticle2dMaterial;
 use bevy::{
-    asset::{load_internal_asset, uuid::uuid, weak_handle},
+    asset::{load_internal_asset, weak_handle},
     prelude::*,
     render::{
         primitives::Aabb,
@@ -43,13 +43,13 @@ pub mod prelude {
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
-    Handle::weak_from_u128(97641680653231235698756524351080664231);
+    weak_handle!("8d6bc2d4-7577-4890-a3a4-0faea3a27448");
 pub(crate) const PARTICLE_VERTEX: Handle<Shader> =
-    Handle::weak_from_u128(47641680653221245698756524350619564219);
+    weak_handle!("57c98346-305c-461a-8cdc-7b3fac8be0ca");
 pub(crate) const PARTICLE_COLOR_FRAG: Handle<Shader> =
-    Handle::weak_from_u128(27641685611347896254665674658656433339);
+    weak_handle!("f60a0cf3-19d3-4425-b6f8-b06bf7ba2f34");
 pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
-    Handle::weak_from_u128(52323345476969163624641232313030656999);
+    weak_handle!("9b13ccf9-eea1-4515-bdd1-1b4131368f71");
 
 pub struct EnokiPlugin;
 impl Plugin for EnokiPlugin {

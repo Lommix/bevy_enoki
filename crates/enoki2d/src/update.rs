@@ -1,6 +1,6 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
-use bevy::{prelude::*, render::{primitives::Aabb, view}};
+use bevy::{prelude::*, render::primitives::Aabb};
 use std::time::Duration;
 
 /// Tag Component, deactivates spawner after the first
@@ -82,7 +82,7 @@ pub(crate) fn remove_finished_spawner(
         .iter()
         .for_each(|(entity, store, controller, one_shot)| {
             if matches!(one_shot, OneShot::Despawn) && !controller.active && store.len() == 0 {
-                cmd.entity(entity).despawn_recursive();
+                cmd.entity(entity).despawn();
             }
         })
 }

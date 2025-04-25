@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.16.0-rc.1"
+bevy = {version = "0.16.0", features = [
+	"file_watcher",
+]}
 bevy_enoki = { path = "../crates/enoki2d" }
 rand = "0.8.5"
 

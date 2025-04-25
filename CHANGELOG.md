@@ -1,6 +1,6 @@
 # 0.4.0
 
-- bevy 0.16 update. No breaking changings.
+- bevy 0.16 update. No breaking changings. Huge performance gain (removed atan).
 
 # 0.3.3
 
