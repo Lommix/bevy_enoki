@@ -3,7 +3,9 @@
 /// how to update effect behavior dynamiclly
 /// ----------------------------------------------
 use bevy::{
-    core_pipeline::bloom::Bloom, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, image::ImageSamplerDescriptor,
+    core_pipeline::bloom::Bloom,
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    image::ImageSamplerDescriptor,
     prelude::*,
 };
 use bevy_enoki::{prelude::*, EnokiPlugin};
