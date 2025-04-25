@@ -16,7 +16,6 @@ pub trait Random<V> {
 
 impl Random<Vec2> for Rval<Vec2> {
     fn rand(&self) -> Vec2 {
-        // In the scale of particles this function is quite expensive
         // Skip, if not needed.
         if self.1 <= 0.0001 {
             return self.0;
@@ -30,9 +29,6 @@ impl Random<Vec2> for Rval<Vec2> {
             self.0.x * cos - self.0.y * sin,
             self.0.x * sin + self.0.y * cos,
         )
-
-        // let angle = self.0.to_angle() + random_angle;
-        // Vec2::new(angle.cos(), angle.sin())
     }
 }
 
