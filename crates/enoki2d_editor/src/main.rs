@@ -1,6 +1,7 @@
 use bevy::{core_pipeline::bloom::Bloom, log::LogPlugin, prelude::*};
 use bevy_egui::egui::FontId;
 use bevy_egui::egui::{self, Color32};
+use bevy_egui::EguiPrimaryContextPass;
 use bevy_enoki::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use file::{EffectChannel, TextureChannel};
@@ -21,24 +22,24 @@ fn main() {
             }),
             PanCamPlugin::default(),
             EnokiPlugin,
-            bevy_egui::EguiPlugin,
+            bevy_egui::EguiPlugin::default(),
             file::FileManagerPlugin,
             log::LogPlugin,
             shader::ShaderPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, gui)
+        .add_systems(EguiPrimaryContextPass, gui)
         .run();
 }
 
 fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::SpriteMaterial>>) {
     cmd.spawn((
-        Camera2d,
         Camera {
             hdr: true,
             clear_color: ClearColorConfig::Custom(Color::BLACK),
             ..default()
         },
+        Camera2d,
         Transform::from_scale(Vec3::splat(2.0)),
         Bloom {
             intensity: 0.,
@@ -72,12 +73,12 @@ fn gui(
     mut logs: ResMut<LogBuffer>,
     watcher: Res<shader::ShaderWatch>,
 ) {
-    let Ok((entity, mut effect_instance, mut state)) = effect_query.get_single_mut() else {
+    let Ok((entity, mut effect_instance, mut state)) = effect_query.single_mut() else {
         return;
     };
 
     let central = egui::CentralPanel::default().frame(egui::Frame { ..default() });
-    central.show(context.ctx_mut(), |ui| {
+    central.show(context.ctx_mut().expect("Egui context"), |ui| {
         egui::TopBottomPanel::top("Enoki particle editor").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 let styles = ui.style_mut();
@@ -108,11 +109,13 @@ fn gui(
                 }
 
                 ui.separator();
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Load Effect").clicked() {
                     file::open_load_effect_dialog(effect_channel.send.clone());
                 }
 
                 ui.separator();
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui
                     .button(watcher.file_name().unwrap_or("Watch shader".into()))
                     .clicked()
@@ -121,6 +124,8 @@ fn gui(
                 }
 
                 ui.separator();
+
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("New Shader").clicked() {
                     shader::open_shader_save(watcher.clone());
                 }
@@ -173,7 +178,7 @@ fn gui(
 
                 ui.separator();
 
-                if let Ok((mut camera, mut bloom)) = camera_query.get_single_mut() {
+                if let Ok((mut camera, mut bloom)) = camera_query.single_mut() {
                     gui::scene_gui(ui, &mut camera, &mut bloom);
                 }
 

@@ -4,3 +4,4 @@ web/*.wasm
 !web/main.js
 build.sh
 target/
+dist

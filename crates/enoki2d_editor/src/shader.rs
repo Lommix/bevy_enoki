@@ -5,14 +5,14 @@ use std::{
 };
 
 use bevy::{
-    prelude::*, render::render_resource::AsBindGroup, tasks::AsyncComputeTaskPool,
-    time::common_conditions::on_timer,
+    asset::weak_handle, prelude::*, render::render_resource::AsBindGroup,
+    tasks::AsyncComputeTaskPool, time::common_conditions::on_timer,
 };
 use bevy_enoki::prelude::{Particle2dMaterial, Particle2dMaterialPlugin};
 use rfd::AsyncFileDialog;
 
 pub(crate) const SPRITE_SHADER: Handle<Shader> =
-    Handle::weak_from_u128(908340313783013137964307813738);
+    weak_handle!("f3c0d7d0-06ef-4a6a-b715-f3578c8692f2");
 
 pub struct ShaderPlugin;
 impl Plugin for ShaderPlugin {
@@ -113,6 +113,7 @@ impl Particle2dMaterial for SpriteMaterial {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn open_shader_dialog(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
@@ -134,7 +135,7 @@ pub fn open_shader_dialog(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
         })
         .detach();
 }
-
+#[cfg(not(target_arch = "wasm32"))]
 pub fn open_shader_save(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {

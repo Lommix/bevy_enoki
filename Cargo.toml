@@ -4,3 +4,14 @@ members = ["crates/enoki2d", "crates/enoki2d_editor", "example"]
 
 [profile.dev]
 opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# This is used by trunk as it doesn't support custom profiles: https://github.com/trunk-rs/trunk/issues/605
+# xbuild also uses this profile for building android AABs because I couldn't find a configuration for it
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

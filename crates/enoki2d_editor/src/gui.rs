@@ -273,7 +273,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
             [x, y as f64]
         })
         .collect();
-    let line = Line::new(sin);
+    let line = Line::new("sin", sin);
     egui_plot::Plot::new("curve_f32")
         .height(100.)
         .allow_drag(false)
