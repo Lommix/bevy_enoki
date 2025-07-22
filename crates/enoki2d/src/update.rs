@@ -96,7 +96,7 @@ pub(crate) fn update_spawner(
         &GlobalTransform,
     )>,
     one_shots: Query<&OneShot>,
-    time: Res<Time>,
+    time: Res<Time<Virtual>>,
 ) {
     particles.par_iter_mut().for_each(
         |(entity, mut store, mut state, effect_instance, transform)| {

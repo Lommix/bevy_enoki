@@ -1,83 +1,96 @@
 #![allow(unused)]
 use bevy::{core_pipeline::bloom::Bloom, prelude::*};
-use bevy_egui::egui::{self, Ui, WidgetText};
+use bevy_egui::{
+    egui::{self, RichText, Ui, WidgetText},
+    EguiContext, EguiContexts, EguiGlobalSettings,
+};
 use bevy_enoki::prelude::*;
 use egui_plot::{Line, PlotPoints};
 
-use crate::{bevy_to_egui_color, egui_to_bevy_color, SceneSettings};
+use crate::{bevy_to_egui_color, egui_to_bevy_color, BloomSettings, SceneSettings};
 
-pub(crate) fn scene_gui(
-    ui: &mut Ui,
-    camera: &mut Camera,
-    bloom: &mut Bloom,
-    settings: &mut SceneSettings,
-) {
-    ui.collapsing("Scene Settings", |ui| {
-        egui::Grid::new("scene_setting")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.checkbox(&mut settings.show_gizmos, "Spawn position gizmos");
-                ui.end_row();
-                ui.label("Background");
+pub(crate) fn scene_gui(ui: &mut Ui, settings: &mut SceneSettings) {
+    egui::Grid::new("scene_setting")
+        .num_columns(2)
+        .show(ui, |ui| {
+            ui.label("Scene background");
+            egui::color_picker::color_edit_button_srgba(
+                ui,
+                &mut settings.clear_color,
+                egui::color_picker::Alpha::Opaque,
+            );
+            ui.end_row();
+            ui.label(RichText::new("Bloom Settings").strong());
+            ui.end_row();
+            match &mut settings.bloom {
+                Some(bloom) => {
+                    ui.label("Intensity");
+                    ui.add(egui::Slider::new(&mut bloom.intensity, (0.)..=1.));
+                    ui.end_row();
+                    ui.label("Threshold");
+                    ui.add_enabled(
+                        bloom.intensity > 0.01,
+                        egui::Slider::new(&mut bloom.threshold, (0.)..=1.),
+                    );
+                    ui.end_row();
 
-                let mut color32 = match camera.clear_color {
-                    ClearColorConfig::Custom(color) => bevy_to_egui_color(color),
-                    _ => bevy_to_egui_color(Color::LinearRgba(LinearRgba::GREEN)),
-                };
-                egui::color_picker::color_edit_button_srgba(
-                    ui,
-                    &mut color32,
-                    egui::color_picker::Alpha::Opaque,
-                );
-                camera.clear_color = ClearColorConfig::Custom(egui_to_bevy_color(color32));
+                    ui.label("Softness");
 
-                ui.end_row();
-                ui.label("Bloom Settings");
-                ui.end_row();
+                    ui.add_enabled(
+                        bloom.intensity > 0.01,
+                        egui::Slider::new(&mut bloom.threshold_softness, (0.)..=1.),
+                    );
+                    ui.end_row();
 
-                ui.label("Intensity");
-                ui.add(egui::Slider::new(&mut bloom.intensity, (0.)..=1.));
-                ui.end_row();
+                    ui.label("low freq");
 
-                ui.label("Threshold");
-                ui.add(egui::Slider::new(&mut bloom.prefilter.threshold, (0.)..=1.));
-                ui.end_row();
+                    ui.add_enabled(
+                        bloom.intensity > 0.01,
+                        egui::Slider::new(&mut bloom.low_frequency_boost, (0.)..=1.),
+                    );
+                    ui.end_row();
 
-                ui.label("Softness");
-                ui.add(egui::Slider::new(
-                    &mut bloom.prefilter.threshold_softness,
-                    (0.)..=1.,
-                ));
-                ui.end_row();
+                    ui.label("high freq");
 
-                ui.label("low freq");
-                ui.add(egui::Slider::new(&mut bloom.low_frequency_boost, (0.)..=1.));
-                ui.end_row();
-
-                ui.label("high freq");
-                ui.add(egui::Slider::new(&mut bloom.high_pass_frequency, (0.)..=1.));
-                ui.end_row();
-            });
-    });
+                    ui.add_enabled(
+                        bloom.intensity > 0.01,
+                        egui::Slider::new(&mut bloom.high_pass_frequency, (0.001)..=1.),
+                    );
+                    ui.end_row();
+                }
+                None => {
+                    if ui.button("Enable bloom").clicked() {
+                        settings.bloom = Some(BloomSettings::default());
+                    }
+                }
+            }
+        });
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum Shape {
     Point,
     Circle,
 }
 
-impl Into<WidgetText> for Shape {
-    fn into(self) -> WidgetText {
-        match self {
-            Shape::Point => "Point".into(),
-            Shape::Circle => "Circle".into(),
+impl From<Shape> for &'static str {
+    fn from(val: Shape) -> Self {
+        match val {
+            Shape::Point => "Point",
+            Shape::Circle => "Circle",
         }
     }
 }
 
-impl From<EmissionShape> for Shape {
-    fn from(value: EmissionShape) -> Self {
+impl From<Shape> for WidgetText {
+    fn from(val: Shape) -> Self {
+        let s: &'static str = val.into();
+        s.into()
+    }
+}
+
+impl From<&EmissionShape> for Shape {
+    fn from(value: &EmissionShape) -> Self {
         match value {
             EmissionShape::Point => Self::Point,
             EmissionShape::Circle(_) => Self::Circle,
@@ -85,130 +98,126 @@ impl From<EmissionShape> for Shape {
     }
 }
 
+fn collapsing_header(text: impl Into<String>) -> egui::CollapsingHeader {
+    egui::CollapsingHeader::new(RichText::new(text).strong().size(19.0)).default_open(true)
+}
+
 pub(crate) fn config_gui(
     ui: &mut Ui,
     effect: &mut Particle2dEffect,
     state: &mut ParticleSpawnerState,
 ) {
-    ui.collapsing("Spawner Settings", |ui| {
-        egui::Grid::new("config")
-            .num_columns(2)
-            .spacing([4., 4.])
-            .min_col_width(80.)
-            .show(ui, |ui| {
-                ui.label("Active");
-                ui.checkbox(&mut state.active, "");
+    ui.add_space(10.0);
+    collapsing_header("Spawner Settings").show(ui, |ui| {
+        // ui.checkbox(&mut state.active, "Active");
+        ui.horizontal(|ui| {
+            ui.label("Amount");
+            ui.add(egui::DragValue::new(&mut effect.spawn_amount).range(1..=9999));
+        });
+        ui.horizontal(|ui| {
+            ui.label("Rate");
+            ui.add(egui::Slider::new(&mut effect.spawn_rate, (0.01)..=2.));
+        });
+        ui.label("Emission type");
 
-                ui.end_row();
-
-                ui.label("Amount");
-                ui.add(egui::DragValue::new(&mut effect.spawn_amount).range(1..=9999));
-
-                ui.end_row();
-
-                ui.label("Rate");
-                ui.add(egui::Slider::new(&mut effect.spawn_rate, (0.01)..=2.));
-
-                ui.end_row();
-
-                let mut shape = Shape::from(effect.emission_shape.clone());
-                ui.label("Emission");
-
-                ui.horizontal(|ui| {
-                    ui.style_mut().spacing.item_spacing = [4., 4.].into();
-                    egui::ComboBox::from_label("")
-                        .selected_text(shape)
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut shape, Shape::Point, Shape::Point);
-                            ui.selectable_value(&mut shape, Shape::Circle, Shape::Circle);
-                        });
-
-                    match shape {
-                        Shape::Point => effect.emission_shape = EmissionShape::Point,
-                        Shape::Circle => {
-                            let mut val = match effect.emission_shape {
-                                EmissionShape::Point => 0.,
-                                EmissionShape::Circle(val) => val,
-                            };
-
-                            ui.add(egui::DragValue::new(&mut val));
-                            effect.emission_shape = EmissionShape::Circle(val);
-                        }
-                    }
+        ui.horizontal(|ui| {
+            ui.style_mut().spacing.item_spacing = [4., 4.].into();
+            let mut shape: Shape = (&effect.emission_shape).into();
+            let before: Shape = shape;
+            egui::ComboBox::from_label("")
+                .selected_text(shape)
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut shape, Shape::Point, Shape::Point);
+                    ui.selectable_value(&mut shape, Shape::Circle, Shape::Circle);
                 });
-
-                ui.end_row();
-            });
-
+            if before != shape {
+                effect.emission_shape = match shape {
+                    Shape::Point => EmissionShape::Point,
+                    Shape::Circle => EmissionShape::Circle(15.0),
+                };
+            } else {
+                let mut val = match effect.emission_shape {
+                    EmissionShape::Point => {
+                        return;
+                    }
+                    EmissionShape::Circle(val) => val,
+                };
+                if ui.add(egui::DragValue::new(&mut val)).changed() {
+                    effect.emission_shape = EmissionShape::Circle(val);
+                }
+            }
+        });
         rval_f32_field(ui, "Lifetime", &mut effect.lifetime);
     });
-
-    ui.collapsing("Linear Velocity", |ui| {
+    ui.separator();
+    collapsing_header("Linear velocity").show(ui, |ui| {
         if let Some(mut direction) = effect.direction.as_mut() {
-            rval_vec2_field(ui, "Direction", &mut direction);
+            rval_vec2_field(ui, "Direction", direction);
         } else {
             effect.direction = Some(Rval::default());
         }
 
         if let Some(mut speed) = effect.linear_speed.as_mut() {
-            rval_f32_field(ui, "Speed", &mut speed);
+            rval_f32_field(ui, "Speed", speed);
         } else {
             effect.linear_speed = Some(Rval::default());
         }
 
         if let Some(mut damp) = effect.linear_damp.as_mut() {
-            rval_f32_field(ui, "Damp", &mut damp);
+            rval_f32_field(ui, "Damp", damp);
         } else {
             effect.linear_damp = Some(Rval::default());
         }
 
         if let Some(mut accel) = effect.linear_acceleration.as_mut() {
-            rval_f32_field(ui, "Accel", &mut accel);
+            rval_f32_field(ui, "Accel", accel);
         } else {
             effect.linear_acceleration = Some(Rval::default());
         }
     });
-
-    ui.collapsing("Angular Velocity", |ui| {
+    ui.separator();
+    collapsing_header("Angular velocity").show(ui, |ui| {
         if let Some(mut speed) = effect.angular_speed.as_mut() {
-            rval_f32_field(ui, "Speed", &mut speed);
+            rval_f32_field(ui, "Speed", speed);
         } else {
             effect.angular_speed = Some(Rval::default());
         }
 
         if let Some(mut damp) = effect.angular_damp.as_mut() {
-            rval_f32_field(ui, "Damp", &mut damp);
+            rval_f32_field(ui, "Damp", damp);
         } else {
             effect.angular_damp = Some(Rval::default());
         }
 
         if let Some(mut accel) = effect.angular_acceleration.as_mut() {
-            rval_f32_field(ui, "Accel", &mut accel);
+            rval_f32_field(ui, "Accel", accel);
         } else {
             effect.angular_acceleration = Some(Rval::default());
         }
     });
 
-    ui.collapsing("Gravity", |ui| {
+    ui.separator();
+    collapsing_header("Gravity").show(ui, |ui| {
         if let Some(mut gravity_direction) = effect.gravity_direction.as_mut() {
-            rval_vec2_field(ui, "Direction", &mut gravity_direction);
+            rval_vec2_field(ui, "Direction", gravity_direction);
         } else {
             effect.gravity_direction = Some(Rval::default());
         }
 
         if let Some(mut grav) = effect.gravity_speed.as_mut() {
-            rval_f32_field(ui, "Speed", &mut grav);
+            rval_f32_field(ui, "Speed", grav);
         } else {
             effect.gravity_speed = Some(Rval::default());
         }
     });
 
-    ui.collapsing("Scale", |ui| {
+    ui.separator();
+    collapsing_header("Scale").show(ui, |ui| {
         if let Some(scale_curve) = effect.scale_curve.as_mut() {
             curve_field_f32(ui, scale_curve);
         } else {
             if let Some(mut scale) = effect.scale.as_mut() {
-                rval_f32_field(ui, "Init Scale", &mut scale);
+                rval_f32_field(ui, "Init Scale", scale);
             } else {
                 effect.scale = Some(Rval::default());
             }
@@ -222,16 +231,15 @@ pub(crate) fn config_gui(
         }
     });
 
-    ui.collapsing("Color", |ui| {
+    ui.separator();
+    collapsing_header("Color").show(ui, |ui| {
         if let Some(color_curve) = effect.color_curve.as_mut() {
             curve_field_color(ui, color_curve);
-        } else {
-            if ui.button("Add Color Curve").clicked() {
-                let curve = bevy_enoki::prelude::MultiCurve::new()
-                    .with_point(LinearRgba::WHITE, 0.0, None)
-                    .with_point(LinearRgba::WHITE, 1.0, None);
-                effect.color_curve = Some(curve);
-            }
+        } else if ui.button("Add Color Curve").clicked() {
+            let curve = bevy_enoki::prelude::MultiCurve::new()
+                .with_point(LinearRgba::WHITE, 0.0, None)
+                .with_point(LinearRgba::WHITE, 1.0, None);
+            effect.color_curve = Some(curve);
         }
     });
 }
@@ -247,7 +255,7 @@ fn rval_f32_field(ui: &mut Ui, label: &str, field: &mut Rval<f32>) {
 
             ui.end_row();
 
-            ui.label(format!("{} Rand", label));
+            ui.label(format!("{label} Rand"));
             ui.add(egui::Slider::new(&mut field.1, (0.)..=1.));
         });
 }
@@ -297,7 +305,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
         .iter_mut()
         .enumerate()
         .for_each(|(i, (val, pos, easing))| {
-            egui::Grid::new(format!("p_{}", i)).show(ui, |ui| {
+            egui::Grid::new(format!("p_{i}")).show(ui, |ui| {
                 ui.label("value");
                 ui.add(egui::DragValue::new(val).range((0.)..=9999.0));
                 if ui.button("Delete").clicked() {
@@ -307,7 +315,7 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
                 ui.end_row();
                 ui.label("position");
                 ui.add(egui::Slider::new(pos, (0.)..=1.0));
-                easing_select(ui, format!("easing_{}", i), easing);
+                easing_select(ui, format!("easing_{i}"), easing);
             });
 
             ui.separator();
@@ -331,7 +339,7 @@ fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<Li
         .iter_mut()
         .enumerate()
         .for_each(|(i, (val, pos, easing))| {
-            egui::Grid::new(format!("p_{}", i)).show(ui, |ui| {
+            egui::Grid::new(format!("p_{i}")).show(ui, |ui| {
                 ui.label("value");
 
                 let mut rgba =
@@ -355,7 +363,7 @@ fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<Li
                 ui.end_row();
                 ui.label("position");
                 ui.add(egui::Slider::new(pos, (0.)..=1.0));
-                easing_select(ui, format!("easing_{}", i), easing);
+                easing_select(ui, format!("easing_{i}"), easing);
             });
 
             ui.separator();
@@ -413,4 +421,79 @@ fn easing_select(ui: &mut Ui, id: impl std::hash::Hash, easing: &mut Option<Ease
             ui.selectable_value(easing, Some(EaseFunction::BounceOut), "BounceOut");
             ui.selectable_value(easing, Some(EaseFunction::BounceInOut), "BounceInOut");
         });
+}
+
+pub(crate) fn egui_settings(mut settings: ResMut<EguiGlobalSettings>) {
+    settings.enable_absorb_bevy_input_system = true;
+}
+
+pub(crate) fn configure_egui(mut contexts: Query<&mut EguiContext, Added<EguiContext>>) {
+    for mut context in contexts.iter_mut() {
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        {
+            if let Some((regular, semibold)) = get_fonts() {
+                let mut fonts = egui::FontDefinitions::default();
+                fonts.font_data.insert(
+                    "regular".to_owned(),
+                    egui::FontData::from_owned(regular).into(),
+                );
+                fonts.font_data.insert(
+                    "semibold".to_owned(),
+                    egui::FontData::from_owned(semibold).into(),
+                );
+
+                // Put my font first (highest priority) for proportional text:
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Proportional)
+                    .or_default()
+                    .insert(0, "regular".to_owned());
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Name("semibold".into()))
+                    .or_default()
+                    .insert(0, "semibold".to_owned());
+
+                // Put my font as last fallback for monospace:
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Monospace)
+                    .or_default()
+                    .push("regular".to_owned());
+
+                // Tell egui to use these fonts:
+                context.get_mut().set_fonts(fonts);
+            }
+        }
+        context.get_mut().style_mut(|style| {
+            for font_id in style.text_styles.values_mut() {
+                font_id.size *= 1.3;
+            }
+        });
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn get_fonts() -> Option<(Vec<u8>, Vec<u8>)> {
+    use std::fs;
+    let font_path = std::path::Path::new("/System/Library/Fonts");
+
+    let regular = fs::read(font_path.join("SFNSRounded.ttf")).ok()?;
+    let semibold = fs::read(font_path.join("SFCompact.ttf")).ok()?;
+
+    Some((regular, semibold))
+}
+
+#[cfg(target_os = "windows")]
+fn get_fonts() -> Option<(Vec<u8>, Vec<u8>)> {
+    use std::fs;
+
+    let app_data = std::env::var("APPDATA").ok()?;
+    let font_path = std::path::Path::new(&app_data);
+
+    let regular = fs::read(font_path.join("../Local/Microsoft/Windows/Fonts/aptos.ttf")).ok()?;
+    let semibold =
+        fs::read(font_path.join("../Local/Microsoft/Windows/Fonts/aptos-bold.ttf")).ok()?;
+
+    Some((regular, semibold))
 }

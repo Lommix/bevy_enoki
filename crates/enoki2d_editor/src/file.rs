@@ -8,7 +8,7 @@ use bevy::{
 use bevy_enoki::prelude::*;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use rfd::AsyncFileDialog;
-use std::time::Duration;
+use std::{borrow::Cow, time::Duration};
 
 pub struct FileManagerPlugin;
 impl Plugin for FileManagerPlugin {
@@ -102,46 +102,46 @@ fn texture_file_watcher(
         .for_each(|(_, mat)| mat.texture = Some(SPRITE_TEXTURE));
 }
 
-pub fn open_load_image_dialog(sender: Sender<TextureFileWrapper>) {
+pub fn open_load_image_dialog(
+    sender: Sender<TextureFileWrapper>,
+    supported_extensions: Vec<Cow<'static, str>>,
+) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
-            match AsyncFileDialog::new()
-                .set_title("load effect assset")
-                .add_filter("png", &["png"])
+            if let Some(handle) = AsyncFileDialog::new()
+                .set_title("load effect asset")
+                .add_filter("image", &supported_extensions)
                 .pick_file()
                 .await
             {
-                Some(handle) => {
-                    let bytes = handle.read().await;
+                let bytes = handle.read().await;
 
-                    let image = match Image::from_buffer(
-                        &bytes,
-                        bevy::image::ImageType::Format(ImageFormat::Png),
-                        CompressedImageFormats::NONE,
-                        false,
-                        ImageSampler::nearest(),
-                        RenderAssetUsages::RENDER_WORLD,
-                    ) {
-                        Ok(img) => img,
-                        Err(err) => {
-                            error!("Failed to load image!\n\n {:?}", err);
-                            return;
-                        }
-                    };
+                let image = match Image::from_buffer(
+                    &bytes,
+                    bevy::image::ImageType::Format(ImageFormat::Png),
+                    CompressedImageFormats::NONE,
+                    false,
+                    ImageSampler::nearest(),
+                    RenderAssetUsages::RENDER_WORLD,
+                ) {
+                    Ok(img) => img,
+                    Err(err) => {
+                        error!("Failed to load image!\n\n {:?}", err);
+                        return;
+                    }
+                };
 
-                    let packed_effect = TextureFileWrapper {
-                        image,
-                        file_name: handle.file_name(),
-                    };
+                let packed_effect = TextureFileWrapper {
+                    image,
+                    file_name: handle.file_name(),
+                };
 
-                    match sender.send(packed_effect) {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("Channel failed!\n\n {:?}", err);
-                        }
-                    };
-                }
-                None => (),
+                match sender.send(packed_effect) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Channel failed!\n\n {:?}", err);
+                    }
+                };
             }
         })
         .detach();
@@ -150,41 +150,40 @@ pub fn open_load_image_dialog(sender: Sender<TextureFileWrapper>) {
 pub fn open_load_effect_dialog(sender: Sender<EffectFileWrapper>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
-            match AsyncFileDialog::new()
+            if let Some(handle) = AsyncFileDialog::new()
                 .set_title("load effect assset")
                 .pick_file()
                 .await
             {
-                Some(handle) => {
-                    let bytes = handle.read().await;
-                    let effect: Particle2dEffect = match ron::de::from_bytes(&bytes) {
-                        Ok(effect) => effect,
-                        Err(err) => {
-                            #[cfg(not(target_arch = "wasm32"))]
-                            {
-                                let path = handle.path().to_str().unwrap_or("");
-                                error!(
-                                    "`{}` is not a valid particle effect asset!\n\n {:?}",
-                                    path, err
-                                );
-                            }
-                            return;
-                        }
-                    };
+                let bytes = handle.read().await;
+                let effect: Particle2dEffect = match ron::de::from_bytes(&bytes) {
+                    Ok(effect) => effect,
+                    Err(err) => {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        let path = handle.path().to_str().unwrap_or("File");
 
-                    let packed_effect = EffectFileWrapper {
-                        effect,
-                        file_name: handle.file_name(),
-                    };
+                        #[cfg(target_arch = "wasm32")]
+                        let path = "File";
 
-                    match sender.send(packed_effect) {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("Channel failed!\n\n {:?}", err);
-                        }
-                    };
-                }
-                None => (),
+                        error!(
+                            "`{}` is not a valid particle effect asset!\n\n {:?}",
+                            path, err
+                        );
+                        return;
+                    }
+                };
+
+                let packed_effect = EffectFileWrapper {
+                    effect,
+                    file_name: handle.file_name(),
+                };
+
+                match sender.send(packed_effect) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Channel failed!\n\n {:?}", err);
+                    }
+                };
             }
         })
         .detach();
@@ -193,32 +192,29 @@ pub fn open_load_effect_dialog(sender: Sender<EffectFileWrapper>) {
 pub fn open_save_effect_dialog(effect: Particle2dEffect, file_name: String) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
-            match AsyncFileDialog::new()
+            if let Some(handle) = AsyncFileDialog::new()
                 .set_title("load effect assset")
                 .set_file_name(file_name)
                 .save_file()
                 .await
             {
-                Some(handle) => {
-                    let string = match ron::ser::to_string(&effect) {
-                        Ok(b) => b,
-                        Err(err) => {
-                            error!(
-                                "Ops, cannot convert to string, this should not happen!\n\n {:?}",
-                                err
-                            );
-                            return;
-                        }
-                    };
+                let string = match ron::ser::to_string(&effect) {
+                    Ok(b) => b,
+                    Err(err) => {
+                        error!(
+                            "Ops, cannot convert to string, this should not happen!\n\n {:?}",
+                            err
+                        );
+                        return;
+                    }
+                };
 
-                    match handle.write(string.as_bytes()).await {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("Could not be saved!\n\n {:?}", err);
-                        }
-                    };
-                }
-                None => (),
+                match handle.write(string.as_bytes()).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Could not be saved!\n\n {:?}", err);
+                    }
+                };
             }
         })
         .detach();

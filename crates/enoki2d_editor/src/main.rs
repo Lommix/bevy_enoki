@@ -1,30 +1,82 @@
 use bevy::{core_pipeline::bloom::Bloom, log::LogPlugin, prelude::*};
-use bevy_egui::egui::FontId;
-use bevy_egui::egui::{self, Color32};
+use bevy_egui::egui::{self, Color32, RichText};
+use bevy_egui::egui::{FontFamily, FontId};
 use bevy_egui::EguiPrimaryContextPass;
 use bevy_enoki::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use file::{EffectChannel, TextureChannel};
 use log::LogBuffer;
 
+use crate::gui::{configure_egui, egui_settings};
+
 mod file;
 mod gui;
 mod log;
 mod shader;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct Spawner;
 
-#[derive(Resource, Reflect)]
-#[reflect(Resource)]
+#[derive(Resource)]
 pub struct SceneSettings {
     pub show_gizmos: bool,
+    pub show_grid: bool,
+    pub repeat_playback: bool,
+    pub clear_color: Color32,
+    pub bloom: Option<BloomSettings>,
 }
 
 impl Default for SceneSettings {
     fn default() -> Self {
-        Self { show_gizmos: true }
+        Self {
+            show_gizmos: true,
+            show_grid: true,
+            repeat_playback: true,
+            clear_color: Color32::from_rgb(3, 3, 4),
+            bloom: None,
+        }
+    }
+}
+
+pub struct BloomSettings {
+    pub intensity: f32,
+    pub threshold: f32,
+    pub threshold_softness: f32,
+    pub low_frequency_boost: f32,
+    pub high_pass_frequency: f32,
+}
+
+impl Default for BloomSettings {
+    fn default() -> Self {
+        Self {
+            intensity: 0.3,
+            low_frequency_boost: 0.7,
+            high_pass_frequency: 1.0,
+            threshold: 0.0,
+            threshold_softness: 0.0,
+        }
+    }
+}
+
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
+pub struct EditorState {
+    pub open_settings: bool,
+    pub open_toolbox: bool,
+    pub settings_width: f32,
+    pub logs_height: f32,
+}
+impl Default for EditorState {
+    fn default() -> Self {
+        Self {
+            open_settings: false,
+            open_toolbox: true,
+            settings_width: 0.0,
+            logs_height: 0.0,
+        }
     }
 }
 
@@ -44,7 +96,7 @@ fn main() {
                     }),
                     ..Default::default()
                 }),
-            PanCamPlugin::default(),
+            PanCamPlugin,
             EnokiPlugin,
             bevy_egui::EguiPlugin::default(),
             file::FileManagerPlugin,
@@ -52,16 +104,46 @@ fn main() {
             shader::ShaderPlugin,
         ))
         .register_type::<Spawner>()
-        .register_type::<SceneSettings>()
+        .register_type::<EditorState>()
+        .init_resource::<EditorState>()
         .init_resource::<SceneSettings>()
-        .add_systems(Startup, setup)
+        .add_systems(
+            Startup,
+            (setup, update_scene, center_camera, egui_settings).chain(),
+        )
         .add_systems(Update, gizmo.run_if(gizmos_active))
-        .add_systems(EguiPrimaryContextPass, gui)
+        .add_systems(
+            Update,
+            (update_scene, update_spawner).run_if(resource_changed::<SceneSettings>),
+        )
+        .add_systems(Update, configure_egui)
+        .add_systems(
+            EguiPrimaryContextPass,
+            (bottom_panel, gui, left_panel, in_game_settings).chain(),
+        )
         .run();
 }
 
+fn update_scene(settings: Res<SceneSettings>, mut camera_query: Query<(&mut Camera, &mut Bloom)>) {
+    for (mut camera, mut bloom) in camera_query.iter_mut() {
+        camera.clear_color = ClearColorConfig::Custom(egui_to_bevy_color(settings.clear_color));
+        match &settings.bloom {
+            Some(settings) => {
+                bloom.intensity = settings.intensity;
+                bloom.prefilter.threshold = settings.threshold;
+                bloom.prefilter.threshold_softness = settings.threshold_softness;
+                bloom.low_frequency_boost = settings.low_frequency_boost;
+                bloom.high_pass_frequency = settings.high_pass_frequency;
+            }
+            _ => {
+                bloom.intensity = 0.0;
+            }
+        }
+    }
+}
+
 fn gizmos_active(settings: Res<SceneSettings>) -> bool {
-    settings.show_gizmos
+    settings.show_gizmos || settings.show_grid
 }
 
 fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::SpriteMaterial>>) {
@@ -87,43 +169,106 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
     cmd.spawn((
         ParticleSpawner(particle_materials.add(shader::SpriteMaterial::default())),
         Spawner,
-        Transform::from_xyz(-100., 0., 0.),
+        Transform::default(),
     ));
 }
 
-fn gizmo(mut gizmos: Gizmos, mut query: Query<&Transform, With<Spawner>>) {
-    for transform in query.iter_mut() {
-        gizmos.circle_2d(transform.translation.xy(), 15.0, Color::WHITE);
+fn gizmo(
+    mut gizmos: Gizmos,
+    settings: Res<SceneSettings>,
+    effect_query: Query<&ParticleEffectInstance>,
+    query: Query<&Transform, With<Spawner>>,
+) {
+    if settings.show_grid {
+        gizmos.grid_2d(
+            Vec2::new(-1000.0, -1000.0),
+            UVec2::new(1000, 1000),
+            Vec2::splat(100.),
+            Color::LinearRgba(LinearRgba::WHITE.with_alpha(0.02)),
+        );
+    }
+    if !settings.show_gizmos {
+        return;
+    }
+    let Ok(effect_instance) = effect_query.single() else {
+        return;
+    };
+    let Some(effect) = &**effect_instance else {
+        return;
+    };
+
+    for transform in query.iter() {
+        match effect.emission_shape {
+            EmissionShape::Point => {
+                gizmos.circle_2d(
+                    transform.translation.xy(),
+                    2.0,
+                    Color::LinearRgba(LinearRgba::RED),
+                );
+            }
+            EmissionShape::Circle(radius) => {
+                gizmos.circle_2d(
+                    transform.translation.xy(),
+                    radius,
+                    Color::LinearRgba(LinearRgba::RED),
+                );
+            }
+        };
+    }
+}
+
+fn center_camera(
+    effect_query: Query<&Transform, (With<ParticleEffectInstance>, Without<Camera>)>,
+    mut camera_query: Query<&mut Transform, With<Camera>>,
+) {
+    let Ok(effect_query_pos) = effect_query.single() else {
+        return;
+    };
+    let Ok(mut camera) = camera_query.single_mut() else {
+        return;
+    };
+
+    camera.translation = effect_query_pos.translation.with_z(camera.translation.z);
+}
+
+fn update_spawner(
+    mut effect_query: Query<(Entity, &mut ParticleSpawnerState)>,
+    settings: Res<SceneSettings>,
+    mut cmd: Commands,
+) {
+    let Ok((entity, mut state)) = effect_query.single_mut() else {
+        return;
+    };
+    if !settings.repeat_playback {
+        cmd.entity(entity).insert(OneShot::Deactivate);
+    } else {
+        cmd.entity(entity).remove::<OneShot>();
+        state.active = true;
     }
 }
 
 fn gui(
-    mut cmd: Commands,
     mut context: bevy_egui::EguiContexts,
-    mut effect_query: Query<(
-        Entity,
-        &mut ParticleEffectInstance,
-        &mut ParticleSpawnerState,
-    )>,
-    mut camera_query: Query<(&mut Camera, &mut Bloom)>,
-    mut one_shot_mode: Local<bool>,
+    mut effect_query: Query<(&mut ParticleEffectInstance, &mut ParticleSpawnerState)>,
+    editor_state: Res<EditorState>,
     effect_channel: Res<EffectChannel>,
     texture_channel: Res<TextureChannel>,
-    mut logs: ResMut<LogBuffer>,
-    mut settings: ResMut<SceneSettings>,
-    watcher: Res<shader::ShaderWatch>,
+    #[cfg(not(target_arch = "wasm32"))] watcher: Res<shader::ShaderWatch>,
 ) {
-    let Ok((entity, mut effect_instance, mut state)) = effect_query.single_mut() else {
+    let Ok((mut effect_instance, mut state)) = effect_query.single_mut() else {
         return;
     };
     let Ok(ctx) = context.ctx_mut() else {
         return;
     };
-    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
+    ctx.all_styles_mut(|style| {
+        style.interaction.selectable_labels = false;
+    });
+    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(5));
 
-    let central = egui::CentralPanel::default().frame(egui::Frame { ..default() });
-    central.show(&ctx, |ui| {
-        egui::TopBottomPanel::top("Enoki particle editor").show_inside(ui, |ui| {
+    egui::TopBottomPanel::top("Enoki particle editor")
+        .frame(frame)
+        .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let styles = ui.style_mut();
 
@@ -142,98 +287,221 @@ fn gui(
                     FontId::new(18.0, egui::FontFamily::Proportional),
                 );
 
-                ui.heading("Enoki Editor 0.1.0");
+                ui.label(
+                    RichText::new(format!("Enoki Editor {VERSION}"))
+                        .heading()
+                        .strong(),
+                );
                 ui.separator();
-                ui.label(format!("file: {}", effect_channel.last_file_name));
+                ui.menu_button("File", |ui| {
+                    ui.menu_button("Effect", |ui| {
+                        ui.label(format!("File: {}", effect_channel.last_file_name));
+                        if ui.button("Save").clicked() {
+                            let effect = effect_instance.0.clone().unwrap_or_default();
+                            file::open_save_effect_dialog(
+                                effect,
+                                effect_channel.last_file_name.clone(),
+                            );
+                            ui.close_menu();
+                        }
+                        if ui.button("Load").clicked() {
+                            file::open_load_effect_dialog(effect_channel.send.clone());
+                            ui.close_menu();
+                        }
+                    });
+                    #[cfg(not(target_arch = "wasm32"))]
+                    ui.menu_button("Shader", |ui| {
+                        ui.label(format!(
+                            "Shader: {}",
+                            watcher.file_name().unwrap_or("Default".to_string())
+                        ));
+                        if ui.button("New Shader").clicked() {
+                            shader::open_shader_save(watcher.clone());
+                            ui.close_menu();
+                        }
+                        if ui
+                            .button(watcher.file_name().unwrap_or("Watch shader".into()))
+                            .clicked()
+                        {
+                            shader::open_shader_dialog(watcher.clone());
+                            ui.close_menu();
+                        }
+                    });
+                    if ui.button("Load Texture").clicked() {
+                        file::open_load_image_dialog(
+                            texture_channel.send.clone(),
+                            vec!["png".into()],
+                        );
+                        ui.close_menu();
+                    }
+                });
+            });
+        });
+    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
 
+    let Some(effect) = effect_instance.0.as_mut() else {
+        return;
+    };
+    egui::SidePanel::right("Config")
+        .frame(frame)
+        .min_width(300.0)
+        .show_animated(ctx, editor_state.open_toolbox, |ui| {
+            egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
+                gui::config_gui(ui, effect, &mut state);
+            });
+        });
+}
+
+pub(crate) fn open_settings(In(open): In<bool>, mut editor_state: ResMut<EditorState>) {
+    editor_state.open_settings = open;
+}
+
+pub(crate) fn left_panel(
+    mut editor_state: ResMut<EditorState>,
+    mut context: bevy_egui::EguiContexts,
+    mut settings: ResMut<SceneSettings>,
+    mut cmd: Commands,
+) {
+    let Ok(ctx) = context.ctx_mut() else {
+        return;
+    };
+    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
+
+    let inner_response = egui::SidePanel::left("Settings")
+        .frame(frame)
+        .min_width(250.0)
+        .show_animated(ctx, editor_state.open_settings, |ui| {
+            ui.vertical_centered_justified(|ui| {
+                ui.label(RichText::new("Settings").strong().size(25.0));
                 ui.separator();
-                if ui.button("Save Effect").clicked() {
-                    let effect = effect_instance.0.clone().unwrap_or_default();
-                    file::open_save_effect_dialog(effect, effect_channel.last_file_name.clone());
-                }
+                ui.add_space(10.0);
 
-                ui.separator();
-                #[cfg(not(target_arch = "wasm32"))]
-                if ui.button("Load Effect").clicked() {
-                    file::open_load_effect_dialog(effect_channel.send.clone());
-                }
+                gui::scene_gui(ui, &mut settings);
 
-                ui.separator();
-                #[cfg(not(target_arch = "wasm32"))]
-                if ui
-                    .button(watcher.file_name().unwrap_or("Watch shader".into()))
-                    .clicked()
-                {
-                    shader::open_shader_dialog(watcher.clone());
-                }
-
-                ui.separator();
-
-                #[cfg(not(target_arch = "wasm32"))]
-                if ui.button("New Shader").clicked() {
-                    shader::open_shader_save(watcher.clone());
-                }
-
-                ui.separator();
-                if ui.button(&texture_channel.last_file_name).clicked() {
-                    file::open_load_image_dialog(texture_channel.send.clone());
+                ui.add_space(10.0);
+                if ui.button("close").clicked() {
+                    cmd.run_system_cached_with(open_settings, false);
                 }
             });
         });
 
-        egui::TopBottomPanel::bottom("log").show_inside(ui, |ui| {
+    editor_state.settings_width = inner_response
+        .map(|r| r.response.rect.width())
+        .unwrap_or_default();
+}
+
+pub(crate) fn in_game_settings(
+    mut effect_query: Query<(&mut ParticleStore, &mut ParticleSpawnerState)>,
+    mut cmd: Commands,
+    mut context: bevy_egui::EguiContexts,
+    editor_state: Res<EditorState>,
+    mut settings: ResMut<SceneSettings>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    let Ok((particles, mut state)) = effect_query.single_mut() else {
+        return;
+    };
+    let Ok(ctx) = context.ctx_mut() else {
+        return;
+    };
+    let particle_count = particles.len();
+    let frame = egui::Frame::canvas(&ctx.style())
+        .fill(Color32::from_rgba_premultiplied(0, 0, 0, 150))
+        .corner_radius(8)
+        .inner_margin(egui::Margin::same(8));
+    let window = egui::Window::new("In-Game Settings")
+        .id(egui::Id::new("in-game-settings")) // required since we change the title
+        .resizable(false)
+        .constrain(true)
+        .collapsible(false)
+        .title_bar(false)
+        .scroll(false)
+        .enabled(true)
+        .frame(frame)
+        .anchor(
+            egui::Align2::LEFT_BOTTOM,
+            [
+                editor_state.settings_width + 20.0,
+                -editor_state.logs_height - 20.0,
+            ],
+        );
+    window.show(ctx, |ui| {
+        ui.vertical(|ui| {
+            ui.label(format!("Particles: {particle_count}"));
+            if settings.repeat_playback {
+                ui.label(format!(
+                    "Time: {:.2}s / {:.2}s",
+                    state.timer.elapsed().as_secs_f32(),
+                    state.timer.duration().as_secs_f32()
+                ));
+            } else {
+                if ui.button("Emit particles").clicked() {
+                    state.active = true;
+                }
+            }
+            let mut speed = time.relative_speed();
+            ui.checkbox(&mut settings.repeat_playback, "Play on repeat")
+                .on_hover_text("Particle preview will restart after the effect is finished");
             ui.horizontal(|ui| {
-                ui.collapsing("Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom", |ui| {
-                    for entry in logs.iter() {
-                        let level = entry.metadata.level().to_string();
-                        let msg = format!("[{}]: {}", level, entry.message);
-                        ui.label(msg);
-                    }
-                });
+                ui.label("Playback speed");
+                if ui.add(egui::Slider::new(&mut speed, (0.)..=3.0)).changed() {
+                    time.set_relative_speed(speed);
+                }
+            });
+            ui.add_space(15.0);
+            let button = ui
+                .add(
+                    egui::Button::new(
+                        egui::RichText::new("Center Camera")
+                            .font(FontId::new(13.0, FontFamily::Proportional)),
+                    )
+                    .frame(false)
+                    .fill(egui::Color32::from_white_alpha(10)),
+                )
+                .on_hover_text("Center camera on particle");
+            if button.clicked() {
+                cmd.run_system_cached(center_camera);
+            }
+            ui.checkbox(&mut settings.show_gizmos, "Display Particle Gizmos");
+            ui.checkbox(&mut settings.show_grid, "Display Grid");
+        });
+    });
+}
 
-                if ui.button("Clear Log").clicked() {
-                    logs.clear();
+pub(crate) fn bottom_panel(
+    mut cmd: Commands,
+    logs: Res<LogBuffer>,
+    mut context: bevy_egui::EguiContexts,
+    mut editor_state: ResMut<EditorState>,
+) {
+    let Ok(ctx) = context.ctx_mut() else {
+        return;
+    };
+    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(5));
+    let response = egui::TopBottomPanel::bottom("log")
+        .frame(frame)
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                let text = "Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom";
+                if logs.is_empty() {
+                    ui.label(text);
+                } else {
+                    ui.collapsing(text, |ui| {
+                        for entry in logs.iter() {
+                            let msg = format!("[{}]: {}", entry.metadata.level(), entry.message);
+                            ui.label(msg);
+                        }
+                    });
+                    if ui.button("Clear Log").clicked() {
+                        cmd.run_system_cached(log::clear_logs);
+                    }
+                }
+                if ui.button("Settings").clicked() {
+                    cmd.run_system_cached_with(open_settings, !editor_state.open_settings);
                 }
             });
         });
-
-        egui::SidePanel::right("Config")
-            .frame(frame)
-            .show_inside(ui, |ui| {
-                egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
-                    egui::Grid::new("one_shot")
-                        .spacing([4., 4.])
-                        .num_columns(2)
-                        .min_col_width(100.)
-                        .show(ui, |ui| {
-                            if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
-                                if *one_shot_mode {
-                                    cmd.entity(entity).insert(OneShot::Deactivate);
-                                } else {
-                                    cmd.entity(entity).remove::<OneShot>();
-                                }
-                            }
-
-                            if ui
-                                .add_sized([100., 30.], egui::Button::new("Spawn Once"))
-                                .clicked()
-                            {
-                                state.active = true;
-                            }
-                        });
-
-                    ui.separator();
-
-                    if let Ok((mut camera, mut bloom)) = camera_query.single_mut() {
-                        gui::scene_gui(ui, &mut camera, &mut bloom, &mut settings);
-                    }
-
-                    if let Some(effect) = effect_instance.0.as_mut() {
-                        gui::config_gui(ui, effect, &mut state);
-                    }
-                });
-            });
-    });
+    editor_state.logs_height = response.response.rect.height();
 }
 
 pub(crate) fn bevy_to_egui_color(color: Color) -> Color32 {

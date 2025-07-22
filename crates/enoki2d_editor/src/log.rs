@@ -29,6 +29,9 @@ fn update_buffer(mut buffer: ResMut<LogBuffer>, logs_rx: Option<NonSend<LogEvent
         }
     }
 }
+pub(crate) fn clear_logs(mut logs: ResMut<LogBuffer>) {
+    logs.clear();
+}
 
 #[derive(Deref, DerefMut)]
 pub struct LogEventsReceiver(mpsc::Receiver<LogEvent>);

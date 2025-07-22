@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -34,14 +36,12 @@ impl ShaderWatch {
     pub fn file_name(&self) -> Option<String> {
         self.lock()
             .ok()
-            .map(|inner| {
+            .and_then(|inner| {
                 inner
                     .as_ref()
                     .map(|wrapper| PathBuf::from(wrapper.path.clone()))
             })
-            .flatten()
-            .map(|path| path.file_name().map(|os| os.to_string_lossy().to_string()))
-            .flatten()
+            .and_then(|path| path.file_name().map(|os| os.to_string_lossy().to_string()))
     }
 }
 
@@ -79,7 +79,7 @@ pub fn setup(mut shaders: ResMut<Assets<Shader>>) {
     shaders.insert(&SPRITE_SHADER, Shader::from_wgsl(DEFAULT_SHADER_STR, ""));
 }
 
-pub const DEFAULT_SHADER_STR: &'static str = r#"
+pub const DEFAULT_SHADER_STR: &str = r#"
 #import bevy_enoki::particle_vertex_out::{ VertexOutput }
 
 @group(1) @binding(0) var texture: texture_2d<f32>;
@@ -117,20 +117,17 @@ impl Particle2dMaterial for SpriteMaterial {
 pub fn open_shader_dialog(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
-            match AsyncFileDialog::new()
+            if let Some(handle) = AsyncFileDialog::new()
                 .set_title("watch shader file")
                 .pick_file()
                 .await
             {
-                Some(handle) => {
-                    if let Ok(mut inner) = wrapper.lock() {
-                        *inner = Some(ShaderWrapper {
-                            path: handle.path().to_string_lossy().to_string(),
-                            last_modified: SystemTime::UNIX_EPOCH,
-                        });
-                    }
+                if let Ok(mut inner) = wrapper.lock() {
+                    *inner = Some(ShaderWrapper {
+                        path: handle.path().to_string_lossy().to_string(),
+                        last_modified: SystemTime::UNIX_EPOCH,
+                    });
                 }
-                None => (),
             }
         })
         .detach();
@@ -139,28 +136,25 @@ pub fn open_shader_dialog(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
 pub fn open_shader_save(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
     AsyncComputeTaskPool::get()
         .spawn(async move {
-            match AsyncFileDialog::new()
+            if let Some(handle) = AsyncFileDialog::new()
                 .set_title("save shader template")
                 .set_file_name("my_new_shader.wgsl")
                 .save_file()
                 .await
             {
-                Some(handle) => {
-                    match handle.write(DEFAULT_SHADER_STR.as_bytes()).await {
-                        Ok(_) => {
-                            if let Ok(mut inner) = wrapper.lock() {
-                                *inner = Some(ShaderWrapper {
-                                    path: handle.path().to_string_lossy().to_string(),
-                                    last_modified: SystemTime::UNIX_EPOCH,
-                                });
-                            }
+                match handle.write(DEFAULT_SHADER_STR.as_bytes()).await {
+                    Ok(_) => {
+                        if let Ok(mut inner) = wrapper.lock() {
+                            *inner = Some(ShaderWrapper {
+                                path: handle.path().to_string_lossy().to_string(),
+                                last_modified: SystemTime::UNIX_EPOCH,
+                            });
                         }
-                        Err(err) => {
-                            error!("Could not be saved!\n\n {:?}", err);
-                        }
-                    };
-                }
-                None => (),
+                    }
+                    Err(err) => {
+                        error!("Could not be saved!\n\n {:?}", err);
+                    }
+                };
             }
         })
         .detach();

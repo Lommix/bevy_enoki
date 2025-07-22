@@ -171,7 +171,7 @@ impl Default for ParticleSpawner<ColorParticle2dMaterial> {
     }
 }
 
-#[derive(Deserialize, Reflect, Default, Clone, Debug, Serialize)]
+#[derive(Deserialize, Reflect, Default, Clone, Debug, Serialize, PartialEq)]
 #[reflect]
 pub enum EmissionShape {
     #[default]
