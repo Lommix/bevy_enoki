@@ -1,5 +1,5 @@
 use bevy::{
-    asset::RenderAssetUsages,
+    asset::{weak_handle, RenderAssetUsages},
     image::{CompressedImageFormats, ImageSampler},
     prelude::*,
     tasks::AsyncComputeTaskPool,
@@ -22,7 +22,8 @@ impl Plugin for FileManagerPlugin {
     }
 }
 
-pub(crate) const SPRITE_TEXTURE: Handle<Image> = Handle::weak_from_u128(10834031378301313896813738);
+pub(crate) const SPRITE_TEXTURE: Handle<Image> =
+    weak_handle!("8ffc5db4-dcc4-4650-bc91-3a93247a4df3");
 
 #[derive(Resource)]
 pub(crate) struct TextureChannel {
@@ -159,11 +160,14 @@ pub fn open_load_effect_dialog(sender: Sender<EffectFileWrapper>) {
                     let effect: Particle2dEffect = match ron::de::from_bytes(&bytes) {
                         Ok(effect) => effect,
                         Err(err) => {
-                            let path = handle.path().to_str().unwrap_or("");
-                            error!(
-                                "`{}` is not a valid particle effect asset!\n\n {:?}",
-                                path, err
-                            );
+                            #[cfg(not(target_arch = "wasm32"))]
+                            {
+                                let path = handle.path().to_str().unwrap_or("");
+                                error!(
+                                    "`{}` is not a valid particle effect asset!\n\n {:?}",
+                                    path, err
+                                );
+                            }
                             return;
                         }
                     };

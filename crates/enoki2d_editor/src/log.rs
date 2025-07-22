@@ -1,7 +1,9 @@
 use bevy::{
-    log::BoxedLayer,
+    log::{
+        tracing::{self, Subscriber},
+        BoxedLayer,
+    },
     prelude::*,
-    utils::tracing::{self, Subscriber},
 };
 use std::sync::mpsc::{self, Sender};
 use tracing_subscriber::Layer;

@@ -9,12 +9,6 @@ repository = "https://github.com/Lommix/bevy_enoki"
 license = "MIT"
 readme = "README.md"
 
-[profile.dev]
-opt-level = 1
-
-[profile.dev.package."*"]
-opt-level = 3
-
 [features]
 dev = [
   "bevy/file_watcher",
@@ -32,5 +26,8 @@ bevy = { version = "0.16", default-features = false, features = [
   "png",
 ] }
 serde = { version = "1.0.197", features = ["derive"] }
-rand = "0.8.5"
 ron = "0.8.1"
+rand = { version = "0.8.5" }
+
+[target.wasm32-unknown-unknown.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
