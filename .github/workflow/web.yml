@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish-web:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Publish web
+    concurrency:
+      group: ubuntu-web-publish-${{ github.head_ref }}
+      cancel-in-progress: true
+    timeout-minutes: 60
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+      - uses: actions/checkout@v4
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: actions/cache@v4
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cache/sccache
+            target/
+          key: wasm-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: wasm-${{ runner.os }}-
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@0.2.100
+      - name: Install trunk
+        uses: jetli/trunk-action@v0.4.0
+        with:
+          version: "latest"
+      - uses: extractions/setup-just@v2
+      - name: Web Build
+        working-directory: crates/enoki2d_editor
+        run: trunk build --release
+      - name: optimize Wasm
+        uses: NiklasEi/wasm-opt-action@v2
+        with:
+          file: crates/enoki2d_editor/dist/*.wasm
+      - name: Push
+        uses: s0/git-publish-subdir-action@develop
+        env:
+          SQUASH_HISTORY: true
+          REPO: self
+          BRANCH: gh-pages # The branch name where you want to push the assets
+          FOLDER: ./crates/enoki2d_editor/dist # The directory where your assets are generated
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
+          MESSAGE: "Build: ({sha}) {msg}" # The commit message
