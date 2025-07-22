@@ -153,6 +153,7 @@ fn gui(
                 }
 
                 ui.separator();
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Load Effect").clicked() {
                     file::open_load_effect_dialog(effect_channel.send.clone());
                 }
