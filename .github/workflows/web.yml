@@ -49,7 +49,7 @@ jobs:
       - uses: extractions/setup-just@v2
       - name: Web Build
         working-directory: crates/enoki2d_editor
-        run: trunk build --release
+        run: trunk build --release --public-url "/bevy_enoki/"
       - name: optimize Wasm
         uses: NiklasEi/wasm-opt-action@v2
         with:
