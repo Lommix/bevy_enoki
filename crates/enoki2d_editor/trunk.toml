@@ -1,5 +1,5 @@
 [build]
-public_url = "./"
+public_url = "bevy_enoki/"
 
 [serve]
 port = 8080
