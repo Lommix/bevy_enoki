@@ -3,7 +3,9 @@
 /// how to update effect behavior dynamiclly
 /// ----------------------------------------------
 use bevy::{
-    core_pipeline::bloom::Bloom, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, image::ImageSamplerDescriptor,
+    core_pipeline::bloom::Bloom,
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    image::ImageSamplerDescriptor,
     prelude::*,
 };
 use bevy_enoki::{prelude::*, EnokiPlugin};
@@ -82,7 +84,7 @@ fn change_dynamic(
 ) {
     *elapsed += time.delta_secs();
 
-    let Ok(mut maybe_effect) = query.get_single_mut() else {
+    let Ok(mut maybe_effect) = query.single_mut() else {
         return;
     };
 
@@ -107,7 +109,7 @@ fn show_fps(
 
     let particle_count: usize = particles.iter().map(|store| store.len()).sum();
 
-    let Ok(mut text) = texts.get_single_mut() else {
+    let Ok(mut text) = texts.single_mut() else {
         return;
     };
 

@@ -77,7 +77,7 @@ fn show_fps(
 
     let particle_count: usize = particles.iter().map(|store| store.len()).sum();
 
-    let Ok(mut text) = texts.get_single_mut() else {
+    let Ok(mut text) = texts.single_mut() else {
         return;
     };
 

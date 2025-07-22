@@ -75,7 +75,7 @@ fn spawn_particles(
     material: Res<ParticleMaterialAsset>,
     server: Res<AssetServer>,
 ) {
-    let Ok((mut timer, mut index)) = query.get_single_mut() else {
+    let Ok((mut timer, mut index)) = query.single_mut() else {
         return;
     };
 
@@ -114,7 +114,7 @@ fn show_fps(
 
     let particle_count: usize = particles.iter().map(|store| store.len()).sum();
 
-    let Ok(mut text) = texts.get_single_mut() else {
+    let Ok(mut text) = texts.single_mut() else {
         return;
     };
 
