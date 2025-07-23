@@ -34,6 +34,9 @@ Enoki has a feature rich Editor.
 
 ![editor](docs/editor.jpg)
 
+
+WEB version : [lommix.github.io/bevy_enoki](https://lommix.github.io/bevy_enoki)
+
 - load and save effect assets.
 - watch a shader file with hot reload, your editor of choice.
 - load a texture.
