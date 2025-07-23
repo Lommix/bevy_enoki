@@ -4,13 +4,20 @@ use bevy_egui::egui::{self, Ui, WidgetText};
 use bevy_enoki::prelude::*;
 use egui_plot::{Line, PlotPoints};
 
-use crate::{bevy_to_egui_color, egui_to_bevy_color};
+use crate::{bevy_to_egui_color, egui_to_bevy_color, SceneSettings};
 
-pub(crate) fn scene_gui(ui: &mut Ui, camera: &mut Camera, bloom: &mut Bloom) {
+pub(crate) fn scene_gui(
+    ui: &mut Ui,
+    camera: &mut Camera,
+    bloom: &mut Bloom,
+    settings: &mut SceneSettings,
+) {
     ui.collapsing("Scene Settings", |ui| {
         egui::Grid::new("scene_setting")
             .num_columns(2)
             .show(ui, |ui| {
+                ui.checkbox(&mut settings.show_gizmos, "Spawn position gizmos");
+                ui.end_row();
                 ui.label("Background");
 
                 let mut color32 = match camera.clear_color {

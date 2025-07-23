@@ -12,14 +12,38 @@ mod gui;
 mod log;
 mod shader;
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct Spawner;
+
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
+pub struct SceneSettings {
+    pub show_gizmos: bool,
+}
+
+impl Default for SceneSettings {
+    fn default() -> Self {
+        Self { show_gizmos: true }
+    }
+}
+
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(LogPlugin {
-                level: bevy::log::Level::INFO,
-                filter: "wgpu=error,naga=warn".into(),
-                custom_layer: log::log_capture_layer,
-            }),
+            DefaultPlugins
+                .set(LogPlugin {
+                    level: bevy::log::Level::INFO,
+                    filter: "wgpu=error,naga=warn".into(),
+                    custom_layer: log::log_capture_layer,
+                })
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        fit_canvas_to_parent: true,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
             PanCamPlugin::default(),
             EnokiPlugin,
             bevy_egui::EguiPlugin::default(),
@@ -27,9 +51,17 @@ fn main() {
             log::LogPlugin,
             shader::ShaderPlugin,
         ))
+        .register_type::<Spawner>()
+        .register_type::<SceneSettings>()
+        .init_resource::<SceneSettings>()
         .add_systems(Startup, setup)
+        .add_systems(Update, gizmo.run_if(gizmos_active))
         .add_systems(EguiPrimaryContextPass, gui)
         .run();
+}
+
+fn gizmos_active(settings: Res<SceneSettings>) -> bool {
+    settings.show_gizmos
 }
 
 fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::SpriteMaterial>>) {
@@ -54,8 +86,15 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
 
     cmd.spawn((
         ParticleSpawner(particle_materials.add(shader::SpriteMaterial::default())),
+        Spawner,
         Transform::from_xyz(-100., 0., 0.),
     ));
+}
+
+fn gizmo(mut gizmos: Gizmos, mut query: Query<&Transform, With<Spawner>>) {
+    for transform in query.iter_mut() {
+        gizmos.circle_2d(transform.translation.xy(), 15.0, Color::WHITE);
+    }
 }
 
 fn gui(
@@ -71,14 +110,19 @@ fn gui(
     effect_channel: Res<EffectChannel>,
     texture_channel: Res<TextureChannel>,
     mut logs: ResMut<LogBuffer>,
+    mut settings: ResMut<SceneSettings>,
     watcher: Res<shader::ShaderWatch>,
 ) {
     let Ok((entity, mut effect_instance, mut state)) = effect_query.single_mut() else {
         return;
     };
+    let Ok(ctx) = context.ctx_mut() else {
+        return;
+    };
+    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
 
     let central = egui::CentralPanel::default().frame(egui::Frame { ..default() });
-    central.show(context.ctx_mut().expect("Egui context"), |ui| {
+    central.show(&ctx, |ui| {
         egui::TopBottomPanel::top("Enoki particle editor").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 let styles = ui.style_mut();
@@ -153,40 +197,42 @@ fn gui(
             });
         });
 
-        egui::SidePanel::right("Config").show_inside(ui, |ui| {
-            egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
-                egui::Grid::new("one_shot")
-                    .spacing([4., 4.])
-                    .num_columns(2)
-                    .min_col_width(100.)
-                    .show(ui, |ui| {
-                        if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
-                            if *one_shot_mode {
-                                cmd.entity(entity).insert(OneShot::Deactivate);
-                            } else {
-                                cmd.entity(entity).remove::<OneShot>();
+        egui::SidePanel::right("Config")
+            .frame(frame)
+            .show_inside(ui, |ui| {
+                egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
+                    egui::Grid::new("one_shot")
+                        .spacing([4., 4.])
+                        .num_columns(2)
+                        .min_col_width(100.)
+                        .show(ui, |ui| {
+                            if ui.checkbox(&mut one_shot_mode, "One Shot").changed() {
+                                if *one_shot_mode {
+                                    cmd.entity(entity).insert(OneShot::Deactivate);
+                                } else {
+                                    cmd.entity(entity).remove::<OneShot>();
+                                }
                             }
-                        }
 
-                        if ui
-                            .add_sized([100., 30.], egui::Button::new("Spawn Once"))
-                            .clicked()
-                        {
-                            state.active = true;
-                        }
-                    });
+                            if ui
+                                .add_sized([100., 30.], egui::Button::new("Spawn Once"))
+                                .clicked()
+                            {
+                                state.active = true;
+                            }
+                        });
 
-                ui.separator();
+                    ui.separator();
 
-                if let Ok((mut camera, mut bloom)) = camera_query.single_mut() {
-                    gui::scene_gui(ui, &mut camera, &mut bloom);
-                }
+                    if let Ok((mut camera, mut bloom)) = camera_query.single_mut() {
+                        gui::scene_gui(ui, &mut camera, &mut bloom, &mut settings);
+                    }
 
-                if let Some(effect) = effect_instance.0.as_mut() {
-                    gui::config_gui(ui, effect, &mut state);
-                }
+                    if let Some(effect) = effect_instance.0.as_mut() {
+                        gui::config_gui(ui, effect, &mut state);
+                    }
+                });
             });
-        });
     });
 }
 
