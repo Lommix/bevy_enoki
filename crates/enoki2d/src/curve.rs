@@ -4,22 +4,36 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Default, Serialize, Debug, Clone)]
 pub struct MultiCurve<T>
 where
-    T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
+    T: LerpThat<T> + Clone + Copy + std::fmt::Debug + Default,
 {
     pub points: Vec<(T, f32, Option<EaseFunction>)>,
+    start_value: T,
+    end_value: T,
 }
 
 impl<T> MultiCurve<T>
 where
-    T: LerpThat<T> + Clone + Copy + std::fmt::Debug,
+    T: LerpThat<T> + Clone + Copy + std::fmt::Debug + Default,
 {
     pub fn new() -> Self {
-        Self { points: vec![] }
+        Self {
+            points: vec![],
+            start_value: T::default(),
+            end_value: T::default(),
+        }
     }
 
     /// sorts the curve ASC
     pub fn sort(&mut self) {
         self.points.sort_by(|a, b| a.1.total_cmp(&b.1));
+        self.start_value = self
+            .points
+            .first()
+            .map_or(T::default(), |(value, _, _)| *value);
+        self.end_value = self
+            .points
+            .last()
+            .map_or(T::default(), |(value, _, _)| *value);
     }
 
     /// adds a point
@@ -33,16 +47,15 @@ where
     pub fn lerp(&self, position: f32) -> T {
         let position = position.max(0.);
 
-        let right_index = self
-            .points
-            .iter()
-            .position(|(_, pos, _)| *pos > position)
-            .unwrap_or_default();
+        let right_index = self.points.iter().position(|(_, pos, _)| *pos > position);
+        let Some(right_index) = right_index else {
+            return self.end_value;
+        };
 
-        let left_index = right_index.checked_sub(1).unwrap_or_default();
+        let left_index = right_index.saturating_sub(1);
 
         if right_index == left_index {
-            return self.points[0].0;
+            return self.start_value;
         }
 
         let left_pos = self.points[left_index].1;

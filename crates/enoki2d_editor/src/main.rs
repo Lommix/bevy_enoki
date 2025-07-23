@@ -1,3 +1,4 @@
+use bevy::diagnostic::DiagnosticsStore;
 use bevy::{core_pipeline::bloom::Bloom, log::LogPlugin, prelude::*};
 use bevy_egui::egui::{self, Color32, RichText};
 use bevy_egui::egui::{FontFamily, FontId};
@@ -111,6 +112,7 @@ fn main() {
             Startup,
             (setup, update_scene, center_camera, egui_settings).chain(),
         )
+        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Update, gizmo.run_if(gizmos_active))
         .add_systems(
             Update,
@@ -397,6 +399,7 @@ pub(crate) fn in_game_settings(
     editor_state: Res<EditorState>,
     mut settings: ResMut<SceneSettings>,
     mut time: ResMut<Time<Virtual>>,
+    diagnostics: Res<DiagnosticsStore>,
 ) {
     let Ok((particles, mut state)) = effect_query.single_mut() else {
         return;
@@ -427,6 +430,13 @@ pub(crate) fn in_game_settings(
         );
     window.show(ctx, |ui| {
         ui.vertical(|ui| {
+            let Some(frame_time) = diagnostics
+                .get(&bevy::diagnostic::FrameTimeDiagnosticsPlugin::FRAME_TIME)
+                .and_then(|v| v.value())
+            else {
+                return;
+            };
+            ui.label(format!("Frame time: {frame_time:.2}"));
             ui.label(format!("Particles: {particle_count}"));
             if settings.repeat_playback {
                 ui.label(format!(
@@ -434,10 +444,8 @@ pub(crate) fn in_game_settings(
                     state.timer.elapsed().as_secs_f32(),
                     state.timer.duration().as_secs_f32()
                 ));
-            } else {
-                if ui.button("Emit particles").clicked() {
-                    state.active = true;
-                }
+            } else if ui.button("Emit particles").clicked() {
+                state.active = true;
             }
             let mut speed = time.relative_speed();
             ui.checkbox(&mut settings.repeat_playback, "Play on repeat")

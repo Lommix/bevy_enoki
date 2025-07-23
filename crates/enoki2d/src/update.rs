@@ -1,7 +1,11 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
-use bevy::{prelude::*, render::primitives::Aabb};
-use std::time::Duration;
+use bevy::{
+    prelude::*,
+    render::primitives::Aabb,
+    tasks::{ComputeTaskPool, ParallelSliceMut},
+};
+use std::{ops::AddAssign, time::Duration};
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
@@ -39,12 +43,16 @@ impl Default for ParticleSpawnerState {
 
 /// Component for storing particle data
 #[derive(Component, Default, Clone, Reflect, Deref, DerefMut)]
-pub struct ParticleStore(pub Vec<Particle>);
+pub struct ParticleStore {
+    #[deref]
+    pub particles: Vec<Particle>,
+}
 
 #[derive(Clone, Reflect)]
 pub struct Particle {
     pub(crate) transform: Transform,
-    pub(crate) lifetime: Timer,
+    pub(crate) duration: f32,
+    pub(crate) duration_fraction: f32,
     pub(crate) velocity: (Vec3, f32),
     pub(crate) color: LinearRgba,
     pub(crate) frame: u32,
@@ -81,7 +89,7 @@ pub(crate) fn remove_finished_spawner(
     spawner
         .iter()
         .for_each(|(entity, store, controller, one_shot)| {
-            if matches!(one_shot, OneShot::Despawn) && !controller.active && store.len() == 0 {
+            if matches!(one_shot, OneShot::Despawn) && !controller.active && store.is_empty() {
                 cmd.entity(entity).despawn();
             }
         })
@@ -100,7 +108,7 @@ pub(crate) fn update_spawner(
 ) {
     particles.par_iter_mut().for_each(
         |(entity, mut store, mut state, effect_instance, transform)| {
-            if state.max_particles <= store.0.len() as u32 {
+            if state.max_particles <= store.particles.len() as u32 {
                 return;
             }
 
@@ -117,19 +125,23 @@ pub(crate) fn update_spawner(
 
             if state.timer.finished() && state.active {
                 for _ in 0..effect.spawn_amount {
-                    store.push(create_particle(&effect, &transform))
+                    store.push(create_particle(effect, &transform))
                 }
 
                 if one_shots.get(entity).is_ok() {
                     state.active = false;
                 }
             }
-
-            store.retain_mut(|particle| {
-                update_particle(particle, &effect, time.delta_secs());
-                particle.lifetime.tick(time.delta());
-                !particle.lifetime.finished()
+            let delta = time.delta_secs();
+            store.par_splat_map_mut(ComputeTaskPool::get(), None, |_, particles| {
+                for particle in particles.iter_mut() {
+                    particle
+                        .duration_fraction
+                        .add_assign(delta / particle.duration);
+                    update_particle(particle, effect, delta);
+                }
             });
+            store.retain(|particle| particle.duration_fraction < 1.0);
         },
     );
 }
@@ -197,7 +209,7 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
         .map(|a| a.rand())
         .unwrap_or_default();
 
-    let mut transform = transform.clone();
+    let mut transform = *transform;
     transform.scale = Vec3::splat(scale);
 
     transform.translation += match effect.emission_shape {
@@ -213,10 +225,8 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
     Particle {
         transform,
         velocity: ((direction * speed).extend(0.), angular),
-        lifetime: Timer::new(
-            Duration::from_secs_f32(effect.lifetime.rand()),
-            TimerMode::Once,
-        ),
+        duration_fraction: 0.0,
+        duration: effect.lifetime.rand(),
         color: effect.color.unwrap_or(LinearRgba::WHITE),
         angular_damp,
         linear_damp,
@@ -230,20 +240,20 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
 
 fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f32) {
     let (lin_velo, rot_velo) = &mut particle.velocity;
-    let progess = particle.lifetime.fraction();
+    let progress = particle.duration_fraction;
 
-    *lin_velo = *lin_velo - progess * particle.linear_damp * *lin_velo * delta
-        + progess * particle.linear_acceleration * *lin_velo * delta;
+    *lin_velo = *lin_velo - progress * particle.linear_damp * *lin_velo * delta
+        + progress * particle.linear_acceleration * *lin_velo * delta;
 
-    *rot_velo = *rot_velo - progess * particle.angular_damp * *rot_velo * delta
-        + progess * particle.angular_acceleration * *rot_velo * delta;
+    *rot_velo = *rot_velo - progress * particle.angular_damp * *rot_velo * delta
+        + progress * particle.angular_acceleration * *rot_velo * delta;
 
     if let Some(scale_curve) = effect.scale_curve.as_ref() {
-        particle.transform.scale = Vec3::splat(scale_curve.lerp(progess));
+        particle.transform.scale = Vec3::splat(scale_curve.lerp(progress));
     }
 
     if let Some(color_curve) = effect.color_curve.as_ref() {
-        particle.color = color_curve.lerp(progess);
+        particle.color = color_curve.lerp(progress);
     }
 
     let gravity = particle.gravity_direction * particle.gravity_speed * delta;
@@ -257,13 +267,10 @@ pub(crate) fn calculcate_particle_bounds(
     spawners: Query<(Entity, &ParticleStore), Without<crate::NoAutoAabb>>,
 ) {
     spawners.iter().for_each(|(entity, store)| {
-        let particle_count = store.len();
-
-        if particle_count <= 0 {
+        if store.is_empty() {
             return;
         }
-
-        let accuracy = (particle_count / 1000).min(1).max(10);
+        let accuracy = (store.len() / 1000).clamp(1, 10);
 
         let (min, max) = store
             .iter()

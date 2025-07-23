@@ -1,7 +1,12 @@
 #![allow(unused)]
+use std::ops::RangeInclusive;
+
 use bevy::{core_pipeline::bloom::Bloom, prelude::*};
 use bevy_egui::{
-    egui::{self, RichText, Ui, WidgetText},
+    egui::{
+        self, emath::Numeric, style::HandleShape, Color32, ColorImage, Pos2, Rect, RichText,
+        Slider, TextureHandle, TextureOptions, Ui, WidgetText,
+    },
     EguiContext, EguiContexts, EguiGlobalSettings,
 };
 use bevy_enoki::prelude::*;
@@ -102,6 +107,23 @@ fn collapsing_header(text: impl Into<String>) -> egui::CollapsingHeader {
     egui::CollapsingHeader::new(RichText::new(text).strong().size(19.0)).default_open(true)
 }
 
+fn slider<T: Numeric>(value: &mut T, range: RangeInclusive<T>) -> Slider {
+    Slider::new(value, range)
+        .trailing_fill(true)
+        .handle_shape(HandleShape::Rect { aspect_ratio: 0.4 })
+}
+
+fn slider_field<T: Numeric>(ui: &mut Ui, label: &str, field: &mut T, range: RangeInclusive<T>) {
+    egui::Grid::new(label)
+        .spacing([4., 4.])
+        .min_col_width(80.)
+        .num_columns(2)
+        .show(ui, |ui| {
+            ui.label(label);
+            ui.add(slider(field, range).logarithmic(true));
+        });
+}
+
 pub(crate) fn config_gui(
     ui: &mut Ui,
     effect: &mut Particle2dEffect,
@@ -110,14 +132,10 @@ pub(crate) fn config_gui(
     ui.add_space(10.0);
     collapsing_header("Spawner Settings").show(ui, |ui| {
         // ui.checkbox(&mut state.active, "Active");
-        ui.horizontal(|ui| {
-            ui.label("Amount");
-            ui.add(egui::DragValue::new(&mut effect.spawn_amount).range(1..=9999));
-        });
-        ui.horizontal(|ui| {
-            ui.label("Rate");
-            ui.add(egui::Slider::new(&mut effect.spawn_rate, (0.01)..=2.));
-        });
+        //
+        slider_field(ui, "Amount", &mut effect.spawn_amount, 1..=1000000);
+        slider_field(ui, "Spawn rate", &mut effect.spawn_rate, (0.01)..=120.);
+
         ui.label("Emission type");
 
         ui.horizontal(|ui| {
@@ -215,6 +233,9 @@ pub(crate) fn config_gui(
     collapsing_header("Scale").show(ui, |ui| {
         if let Some(scale_curve) = effect.scale_curve.as_mut() {
             curve_field_f32(ui, scale_curve);
+            if scale_curve.points.is_empty() {
+                effect.scale_curve = None;
+            }
         } else {
             if let Some(mut scale) = effect.scale.as_mut() {
                 rval_f32_field(ui, "Init Scale", scale);
@@ -235,49 +256,76 @@ pub(crate) fn config_gui(
     collapsing_header("Color").show(ui, |ui| {
         if let Some(color_curve) = effect.color_curve.as_mut() {
             curve_field_color(ui, color_curve);
-        } else if ui.button("Add Color Curve").clicked() {
-            let curve = bevy_enoki::prelude::MultiCurve::new()
-                .with_point(LinearRgba::WHITE, 0.0, None)
-                .with_point(LinearRgba::WHITE, 1.0, None);
-            effect.color_curve = Some(curve);
+            if color_curve.points.is_empty() {
+                effect.color_curve = None;
+            }
+        } else {
+            if let Some(mut color) = effect.color.as_mut() {
+                ui.label("Color");
+                draw_color_edit(ui, color);
+            } else {
+                effect.color = Some(LinearRgba::WHITE);
+            }
+
+            if ui.button("Add Color Curve").clicked() {
+                let curve = bevy_enoki::prelude::MultiCurve::new()
+                    .with_point(LinearRgba::WHITE, 0.0, None)
+                    .with_point(LinearRgba::WHITE, 1.0, None);
+                effect.color_curve = Some(curve);
+            }
         }
     });
 }
 
 fn rval_f32_field(ui: &mut Ui, label: &str, field: &mut Rval<f32>) {
+    ui.add_space(5.0);
     egui::Grid::new(label)
         .spacing([4., 4.])
         .min_col_width(80.)
         .num_columns(2)
         .show(ui, |ui| {
             ui.label(label);
-            ui.add(egui::DragValue::new(&mut field.0).range((0.)..=9999.));
+            ui.add(slider(&mut field.0, 0.0..=9999.9).logarithmic(true));
 
             ui.end_row();
 
-            ui.label(format!("{label} Rand"));
-            ui.add(egui::Slider::new(&mut field.1, (0.)..=1.));
+            if field.1 <= 0.001 {
+                if ui.button(format!("{label} Rand")).clicked() {
+                    field.1 = 0.1;
+                }
+            } else {
+                ui.label(format!("{label} Rand"));
+                ui.add(slider(&mut field.1, 0.0..=1.0));
+            }
         });
+    ui.add_space(5.0);
 }
 
 fn rval_vec2_field(ui: &mut Ui, label: &str, field: &mut Rval<Vec2>) {
+    ui.add_space(5.0);
     egui::Grid::new(label)
         .spacing([4., 4.])
         .min_col_width(80.)
         .num_columns(2)
         .show(ui, |ui| {
             ui.label("Dir X");
-            ui.add(egui::Slider::new(&mut field.0.x, (-1.)..=1.));
+            ui.add(slider(&mut field.0.x, (-1.)..=1.));
             ui.end_row();
 
             ui.label("Dir Y");
-            ui.add(egui::Slider::new(&mut field.0.y, (-1.)..=1.));
+            ui.add(slider(&mut field.0.y, (-1.)..=1.));
             ui.end_row();
 
-            ui.label("Randomness");
-            ui.add(egui::Slider::new(&mut field.1, (0.)..=1.));
-            ui.end_row();
+            if field.1 <= 0.001 {
+                if ui.button(format!("{label} Rand")).clicked() {
+                    field.1 = 0.1;
+                }
+            } else {
+                ui.label(format!("{label} Rand"));
+                ui.add(slider(&mut field.1, 0.0..=1.0));
+            }
         });
+    ui.add_space(5.0);
 }
 
 fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>) {
@@ -300,6 +348,11 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
         });
 
     let mut remove = Vec::new();
+    let curve_pos: Vec<f32> = curve
+        .points
+        .iter()
+        .map(|(val, pos, easing)| (*pos))
+        .collect();
     curve
         .points
         .iter_mut()
@@ -307,15 +360,23 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
         .for_each(|(i, (val, pos, easing))| {
             egui::Grid::new(format!("p_{i}")).show(ui, |ui| {
                 ui.label("value");
-                ui.add(egui::DragValue::new(val).range((0.)..=9999.0));
+                ui.add(slider(val, 0.0..=9999.0).logarithmic(true));
                 if ui.button("Delete").clicked() {
                     remove.push(i);
                 }
 
                 ui.end_row();
                 ui.label("position");
-                ui.add(egui::Slider::new(pos, (0.)..=1.0));
-                easing_select(ui, format!("easing_{i}"), easing);
+                let start_pos = if i == 0 { 0.0 } else { curve_pos[i - 1] };
+                let max_pos = if i + 1 >= curve_pos.len() {
+                    1.0
+                } else {
+                    curve_pos[i + 1]
+                };
+                ui.add(slider(pos, (start_pos)..=max_pos));
+                if i != 0 {
+                    easing_select(ui, format!("easing_{i}"), easing);
+                }
             });
 
             ui.separator();
@@ -332,8 +393,45 @@ fn curve_field_f32(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<f32>
     }
 }
 
+fn draw_gradient(
+    ui: &mut Ui,
+    gradient: &bevy_enoki::prelude::MultiCurve<LinearRgba>,
+    size: egui::Vec2,
+) {
+    let (mut response, painter) = ui.allocate_painter(size, egui::Sense::hover());
+    let start_pos = painter.clip_rect().left_top();
+    let step_size = size.x / 250.0;
+    let height = size.y;
+    for ii in 0..250 {
+        let i = ii as f32;
+        let rect = Rect::from_min_max(
+            start_pos + egui::Vec2::new(step_size * i, 0.0),
+            start_pos + egui::Vec2::new(step_size * (i + 1.0), height),
+        );
+        let color = gradient.lerp(i / 250.0);
+        let egui_color = bevy_to_egui_color(color.into());
+        painter.rect_filled(rect, 0.0, egui_color);
+    }
+}
+
+fn draw_color_edit(ui: &mut Ui, val: &mut LinearRgba) {
+    let mut rgba = egui::Rgba::from_rgba_premultiplied(val.red, val.green, val.blue, val.alpha);
+
+    egui::color_picker::color_edit_button_rgba(ui, &mut rgba, egui::color_picker::Alpha::Opaque);
+
+    val.red = rgba.r();
+    val.green = rgba.g();
+    val.blue = rgba.b();
+    val.alpha = rgba.a();
+}
+
 fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<LinearRgba>) {
-    let mut remove = Vec::new();
+    let available_size = ui.available_size_before_wrap();
+    ui.add_space(5.0);
+    draw_gradient(ui, curve, [available_size.x - 10.0, 18.0].into());
+    ui.add_space(5.0);
+    let mut to_remove_index: Option<usize> = None;
+    let curve_pos: Vec<f32> = curve.points.iter().map(|(_, pos, _)| (*pos)).collect();
     curve
         .points
         .iter_mut()
@@ -342,36 +440,32 @@ fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<Li
             egui::Grid::new(format!("p_{i}")).show(ui, |ui| {
                 ui.label("value");
 
-                let mut rgba =
-                    egui::Rgba::from_rgba_premultiplied(val.red, val.green, val.blue, val.alpha);
-
-                egui::color_picker::color_edit_button_rgba(
-                    ui,
-                    &mut rgba,
-                    egui::color_picker::Alpha::Opaque,
-                );
-
-                val.red = rgba.r();
-                val.green = rgba.g();
-                val.blue = rgba.b();
-                val.alpha = rgba.a();
+                draw_color_edit(ui, val);
 
                 if ui.button("Delete").clicked() {
-                    remove.push(i);
+                    to_remove_index = Some(i);
                 }
 
                 ui.end_row();
                 ui.label("position");
-                ui.add(egui::Slider::new(pos, (0.)..=1.0));
-                easing_select(ui, format!("easing_{i}"), easing);
+                let start_pos = if i == 0 { 0.0 } else { curve_pos[i - 1] };
+                let max_pos = if i + 1 >= curve_pos.len() {
+                    1.0
+                } else {
+                    curve_pos[i + 1]
+                };
+                ui.add(slider(pos, (start_pos)..=max_pos));
+                if i != 0 {
+                    easing_select(ui, format!("easing_{i}"), easing);
+                }
             });
 
             ui.separator();
         });
 
-    remove.drain(..).for_each(|i| {
-        curve.points.remove(i);
-    });
+    if let Some(index) = to_remove_index {
+        curve.points.remove(index);
+    }
 
     curve.sort();
 

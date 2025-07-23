@@ -106,8 +106,7 @@ fn show_fps(
 ) {
     let Some(fps) = diagnostics
         .get(&bevy::diagnostic::FrameTimeDiagnosticsPlugin::FPS)
-        .map(|v| v.value())
-        .flatten()
+        .and_then(|v| v.value())
     else {
         return;
     };
@@ -119,8 +118,7 @@ fn show_fps(
     };
 
     text.0 = format!(
-        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {:.1}\nParticles: {}",
-        fps, particle_count
+        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {fps:.1}\nParticles: {particle_count}"
     );
 }
 
