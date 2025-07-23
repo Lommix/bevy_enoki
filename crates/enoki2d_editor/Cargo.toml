@@ -1,6 +1,6 @@
 [package]
 name = "enoki2d_editor"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Lorenz Mielke"]
 keywords = ["bevy", "particles", "shader", "2d", "particle"]
 description = "Particle editor for the bevy_enoki crate"
