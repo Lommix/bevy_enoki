@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, user-scalable=no"
+        />
+        <title>Bevy game</title>
+        <!-- ToDo -->
+        <style>
+            :root {
+                /* Consider adjusting this color to match your splash screen! */
+                --loading-screen-bg-color: #282828;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                border: 0;
+            }
+
+            html,
+            body {
+                text-align: center;
+                margin: auto 0;
+                background-color: #292f36;
+            }
+
+            canvas {
+                filter: drop-shadow(#2c422e 0 0 10px);
+            }
+
+            .center {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+            }
+
+            #loading-screen {
+                background-color: var(--loading-screen-bg-color);
+            }
+
+            .spinner {
+                width: 128px;
+                height: 128px;
+                border: 64px solid transparent;
+                border-bottom-color: #ececec;
+                border-right-color: #b2b2b2;
+                border-top-color: #787878;
+                border-radius: 50%;
+                box-sizing: border-box;
+                animation: spin 1.2s linear infinite;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            #bevy {
+                /* Hide Bevy app before it loads */
+                height: 0;
+            }
+        </style>
+    <link rel="modulepreload" href="/bevy_enoki/enoki2d_editor-74c4731d1f0424eb.js" crossorigin="anonymous" integrity="sha384-tIRYvYuF7Wj1bhneYv1z1UYzLv6xGgJJfpRYF7wNVacakfW5NDhOI1Lom1kmo0uw"><link rel="preload" href="/bevy_enoki/enoki2d_editor-74c4731d1f0424eb_bg.wasm" crossorigin="anonymous" integrity="sha384-eUFBDYnf64nvW0X6XZ8vl5TOZGYqnM7l9b1m1FR1woDUS8LUr4lOe77ukd4zt+iL" as="fetch" type="application/wasm"></head>
+    <body>
+        <div class="game-container">
+            <div class="lds-dual-ring"></div>
+            <canvas id="bevy">
+                Javascript and support for canvas is required
+            </canvas>
+        </div>
+    
+<script type="module">
+import init, * as bindings from '/bevy_enoki/enoki2d_editor-74c4731d1f0424eb.js';
+const wasm = await init({ module_or_path: '/bevy_enoki/enoki2d_editor-74c4731d1f0424eb_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>
