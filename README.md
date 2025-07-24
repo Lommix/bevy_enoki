@@ -28,7 +28,7 @@ The default material allows not only for custom textures, but also sprite sheet 
 | 0.14 |      0.2.2 |
 | 0.13 |        0.1 |
 
-## Editor
+## Editor [lommix.github.io/bevy_enoki](https://lommix.github.io/bevy_enoki)
 
 Enoki has a feature rich Editor.
 
