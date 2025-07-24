@@ -75,7 +75,7 @@ fn spawn_particles(
     material: Res<ParticleMaterialAsset>,
     server: Res<AssetServer>,
 ) {
-    let Ok((mut timer, mut index)) = query.get_single_mut() else {
+    let Ok((mut timer, mut index)) = query.single_mut() else {
         return;
     };
 
@@ -106,21 +106,19 @@ fn show_fps(
 ) {
     let Some(fps) = diagnostics
         .get(&bevy::diagnostic::FrameTimeDiagnosticsPlugin::FPS)
-        .map(|v| v.value())
-        .flatten()
+        .and_then(|v| v.value())
     else {
         return;
     };
 
     let particle_count: usize = particles.iter().map(|store| store.len()).sum();
 
-    let Ok(mut text) = texts.get_single_mut() else {
+    let Ok(mut text) = texts.single_mut() else {
         return;
     };
 
     text.0 = format!(
-        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {:.1}\nParticles: {}",
-        fps, particle_count
+        "O:ZoomOut I:ZoomIn Arrow:Move\nFPS: {fps:.1}\nParticles: {particle_count}"
     );
 }
 

@@ -38,6 +38,7 @@ use bevy::{
         Extract, Render, RenderApp, RenderSet,
     },
     sprite::Mesh2dPipelineKey,
+    tasks::{ComputeTaskPool, ParallelSlice},
 };
 use std::{hash::Hash, ops::Range};
 
@@ -56,7 +57,7 @@ pub struct Particle2dMaterialPlugin<M: Particle2dMaterial> {
 impl<M: Particle2dMaterial> Default for Particle2dMaterialPlugin<M> {
     fn default() -> Self {
         Self {
-            _m: std::marker::PhantomData::<M>::default(),
+            _m: std::marker::PhantomData::<M>,
         }
     }
 }
@@ -161,7 +162,7 @@ fn extract_materials<M: Particle2dMaterial>(
         }
     }
 }
-
+#[allow(clippy::type_complexity)]
 fn extract_particles<M: Particle2dMaterial>(
     mut cmd: Commands,
     mut extraced_batches: ResMut<ExtracedParticleSpawner<M>>,
@@ -179,18 +180,19 @@ fn extract_particles<M: Particle2dMaterial>(
     extraced_batches.particles.clear();
     query.iter().for_each(|emitter| {
         let (particle_store, global, material_handle, visbility, render_entity) = emitter;
-        if !visbility.get() || particle_store.len() == 0 {
+        if !visbility.get() || particle_store.is_empty() {
             return;
         }
 
-        let particles = particle_store
-            .iter()
-            .map(|particle| InstanceData::from(particle))
-            .collect::<Vec<_>>();
-
         cmd.entity(**render_entity)
             .insert((ZOrder(FloatOrd(global.translation().z)), ParticleTag));
-
+        let particles = particle_store
+            .par_splat_map(ComputeTaskPool::get(), None, |_, particles| {
+                particles.iter().map(InstanceData::from).collect::<Vec<_>>()
+            })
+            .into_iter()
+            .flatten()
+            .collect();
         render_material_instances.insert(**render_entity, material_handle.id());
         extraced_batches
             .particles
@@ -206,7 +208,7 @@ pub struct ZOrder(FloatOrd);
 
 // ----------------------------------------------
 // #queue
-
+#[allow(clippy::too_many_arguments)]
 fn queue_particles<M: Particle2dMaterial>(
     transparent_2d_draw_functions: Res<DrawFunctions<Transparent2d>>,
     custom_pipeline: Res<Particle2dPipeline<M>>,
@@ -233,7 +235,6 @@ fn queue_particles<M: Particle2dMaterial>(
         let pipeline = pipelines.specialize(&pipeline_cache, &custom_pipeline, key);
 
         for (entity, main_entity) in visible_entities.get::<RenderParticleTag>().iter() {
-
             if extract_particles.particles.get(entity).is_none() {
                 continue;
             }
@@ -259,7 +260,7 @@ fn queue_particles<M: Particle2dMaterial>(
 // ----------------------------------------------
 //
 
-#[derive(Clone, Debug, Copy, ShaderType)]
+#[derive(Clone, Debug, Copy, ShaderType, Reflect)]
 pub struct InstanceData {
     transform: [Vec4; 3],
     color: [f32; 4],
@@ -283,12 +284,7 @@ impl From<&Particle> for InstanceData {
                     .extend(value.transform.translation.z),
             ],
             color: value.color.to_f32_array(),
-            custom: Vec4::new(
-                value.lifetime.fraction(),
-                value.lifetime.duration().as_secs_f32(),
-                0.,
-                0.,
-            ),
+            custom: Vec4::new(value.duration_fraction, value.duration, 0., 0.),
         }
     }
 }
@@ -359,7 +355,7 @@ fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
     let mut index = 0;
 
     for (entity, instances) in extracted_spawner.particles.iter_mut() {
-        if instances.len() == 0 {
+        if instances.is_empty() {
             continue;
         }
 
@@ -446,7 +442,7 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
             uniform_layout: M::bind_group_layout(render_device), //world.resource::<ParticleUniformLayout>().0.clone(),
             vertex_shader,
             fragment_shader,
-            _m: std::marker::PhantomData::<M>::default(),
+            _m: std::marker::PhantomData::<M>,
         }
     }
 }
