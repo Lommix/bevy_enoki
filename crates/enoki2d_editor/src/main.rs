@@ -183,9 +183,9 @@ fn gizmo(
 ) {
     if settings.show_grid {
         gizmos.grid_2d(
-            Vec2::new(-1000.0, -1000.0),
-            UVec2::new(1000, 1000),
-            Vec2::splat(100.),
+            Vec2::new(0.0, 0.0),
+            UVec2::new(40, 40),
+            Vec2::splat(1000.),
             Color::LinearRgba(LinearRgba::WHITE.with_alpha(0.02)),
         );
     }
