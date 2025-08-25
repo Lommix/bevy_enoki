@@ -273,7 +273,8 @@ fn update_particle(
 
             if distance_sq > 0.0 {
                 let distance = distance_sq.sqrt();
-                let force_magnitude = attractor.strength / distance_sq.max(1.0);
+                let min_distance_sq = attractor.min_distance * attractor.min_distance;
+                let force_magnitude = attractor.strength / distance_sq.max(min_distance_sq);
                 let force_direction = to_attractor / distance;
 
                 *lin_velo += force_direction * force_magnitude * delta;

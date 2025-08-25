@@ -183,6 +183,7 @@ pub enum EmissionShape {
 pub struct Attractor {
     pub position: Vec2,
     pub strength: f32,
+    pub min_distance: f32,
 }
 
 /// holds the effect asset. Changing the Asset, will

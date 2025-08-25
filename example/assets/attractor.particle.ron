@@ -17,6 +17,7 @@
         (
             position: (0.0, 0.0),
             strength: 1000000.0,
+            min_distance: 5.0,
         ),
     ]),
 )

@@ -262,7 +262,13 @@ pub(crate) fn config_gui(
                         ui.end_row();
 
                         ui.label("Strength");
-                        ui.add(slider(&mut attractor.strength, 0.0..=1000000.0).logarithmic(true));
+                        ui.add(
+                            slider(&mut attractor.strength, 0.0..=100000000.0).logarithmic(true),
+                        );
+                        ui.end_row();
+
+                        ui.label("Min Distance");
+                        ui.add(slider(&mut attractor.min_distance, 0.1..=100.0));
                         ui.end_row();
                     });
                 ui.separator();
@@ -280,6 +286,7 @@ pub(crate) fn config_gui(
                 attractors.push(Attractor {
                     position: Vec2::new(0.0, 0.0),
                     strength: 10000.0,
+                    min_distance: 5.0,
                 });
             }
         } else {
@@ -288,6 +295,7 @@ pub(crate) fn config_gui(
                 effect.attractors = Some(vec![Attractor {
                     position: Vec2::new(0.0, 0.0),
                     strength: 10000.0,
+                    min_distance: 5.0,
                 }]);
             }
         }
