@@ -19,6 +19,7 @@ use color::ColorParticle2dMaterial;
 use serde::{Deserialize, Serialize};
 use values::Rval;
 
+mod attractor;
 mod color;
 mod curve;
 mod loader;
@@ -119,6 +120,7 @@ impl Plugin for EnokiPlugin {
                 update::clone_effect,
                 update::remove_finished_spawner,
                 update::update_spawner,
+                update::apply_attractor_forces,
             ),
         );
 

@@ -1,5 +1,5 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
-use crate::values::Random;
+use crate::{attractor::ParticleAttractor, values::Random};
 use bevy::{
     prelude::*,
     render::primitives::Aabb,
@@ -287,3 +287,5 @@ pub(crate) fn calculcate_particle_bounds(
             .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
     });
 }
+
+pub(crate) fn apply_attractor_forces(attractors: Query<(&ParticleAttractor, &GlobalTransform)>) {}
