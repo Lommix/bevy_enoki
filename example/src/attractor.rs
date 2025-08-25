@@ -9,7 +9,12 @@ fn main() {
         .run();
 }
 
-fn setup(mut cmds: Commands) {
+fn setup(mut cmds: Commands, server: Res<AssetServer>) {
     cmds.spawn(Camera2d);
-    cmds.spawn(ParticleSpawner::default());
+
+    // Spawn particle spawner with attractors defined in the effect file
+    cmds.spawn((
+        ParticleSpawner::default(),
+        ParticleEffectHandle(server.load("attractor.particle.ron")),
+    ));
 }

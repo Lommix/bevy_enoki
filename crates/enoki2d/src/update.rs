@@ -1,5 +1,5 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
-use crate::{attractor::ParticleAttractor, values::Random};
+use crate::values::Random;
 use bevy::{
     prelude::*,
     render::primitives::Aabb,
@@ -133,12 +133,14 @@ pub(crate) fn update_spawner(
                 }
             }
             let delta = time.delta_secs();
+            let spawner_world_pos = transform.translation;
+
             store.par_splat_map_mut(ComputeTaskPool::get(), None, |_, particles| {
                 for particle in particles.iter_mut() {
                     particle
                         .duration_fraction
                         .add_assign(delta / particle.duration);
-                    update_particle(particle, effect, delta);
+                    update_particle(particle, effect, delta, spawner_world_pos);
                 }
             });
             store.retain(|particle| particle.duration_fraction < 1.0);
@@ -238,7 +240,12 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
     }
 }
 
-fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f32) {
+fn update_particle(
+    particle: &mut Particle,
+    effect: &Particle2dEffect,
+    delta: f32,
+    spawner_world_pos: Vec3,
+) {
     let (lin_velo, rot_velo) = &mut particle.velocity;
     let progress = particle.duration_fraction;
 
@@ -254,6 +261,24 @@ fn update_particle(particle: &mut Particle, effect: &Particle2dEffect, delta: f3
 
     if let Some(color_curve) = effect.color_curve.as_ref() {
         particle.color = color_curve.lerp(progress);
+    }
+
+    // Apply attractor forces from effect
+    if let Some(attractors) = &effect.attractors {
+        for attractor in attractors.iter() {
+            // Transform attractor position from local to world space
+            let attractor_world_pos = spawner_world_pos + attractor.position.extend(0.0);
+            let to_attractor = attractor_world_pos - particle.transform.translation;
+            let distance_sq = to_attractor.length_squared();
+
+            if distance_sq > 0.0 {
+                let distance = distance_sq.sqrt();
+                let force_magnitude = attractor.strength / distance_sq.max(1.0);
+                let force_direction = to_attractor / distance;
+
+                *lin_velo += force_direction * force_magnitude * delta;
+            }
+        }
     }
 
     let gravity = particle.gravity_direction * particle.gravity_speed * delta;
@@ -287,5 +312,3 @@ pub(crate) fn calculcate_particle_bounds(
             .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
     });
 }
-
-pub(crate) fn apply_attractor_forces(attractors: Query<(&ParticleAttractor, &GlobalTransform)>) {}
