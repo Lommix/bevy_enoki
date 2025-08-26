@@ -1,0 +1,23 @@
+(
+    spawn_rate: 0.1,
+    spawn_amount: 10,
+    emission_shape: Circle(100.0),
+    lifetime: (1.0, 0.0),
+    direction: Some(((0, 1), 0.1)),
+    linear_speed: Some((0, 0)),
+    linear_acceleration: Some((0, 0)),
+    angular_speed: Some((0, 0)),
+    angular_acceleration: Some((0, 0)),
+    gravity_speed: Some((0, 0)),
+    gravity_direction: Some(((0, 0), 0)),
+    scale: Some((5., 0.5)),
+    linear_damp: Some((0, 0.0)),
+    angular_damp: Some((0, 0)),
+    attractors: Some([
+        (
+            position: (0.0, 0.0),
+            strength: 1000000.0,
+            min_distance: 5.0,
+        ),
+    ]),
+)

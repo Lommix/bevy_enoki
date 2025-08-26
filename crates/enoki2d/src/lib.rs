@@ -37,7 +37,7 @@ pub mod prelude {
     pub use super::update::{OneShot, ParticleEffectInstance, ParticleSpawnerState, ParticleStore};
     pub use super::values::{Random, Rval};
     pub use super::{
-        EmissionShape, EnokiPlugin, NoAutoAabb, Particle2dEffect, ParticleEffectHandle,
+        Attractor, EmissionShape, EnokiPlugin, NoAutoAabb, Particle2dEffect, ParticleEffectHandle,
         ParticleSpawner,
     };
 }
@@ -179,6 +179,13 @@ pub enum EmissionShape {
     Circle(f32),
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug, Reflect)]
+pub struct Attractor {
+    pub position: Vec2,
+    pub strength: f32,
+    pub min_distance: f32,
+}
+
 /// holds the effect asset. Changing the Asset, will
 /// effect all spanwers using it. Instead use `ParticleEffectInstance`,
 /// which is a unique copy for each spawner,
@@ -212,6 +219,7 @@ pub struct Particle2dEffect {
     pub angular_damp: Option<Rval<f32>>,
     pub scale_curve: Option<curve::MultiCurve<f32>>,
     pub color_curve: Option<curve::MultiCurve<LinearRgba>>,
+    pub attractors: Option<Vec<Attractor>>,
 }
 
 impl Default for Particle2dEffect {
@@ -234,6 +242,7 @@ impl Default for Particle2dEffect {
             angular_damp: None,
             scale_curve: None,
             color_curve: None,
+            attractors: None,
         }
     }
 }

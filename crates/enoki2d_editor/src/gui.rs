@@ -230,6 +230,85 @@ pub(crate) fn config_gui(
     });
 
     ui.separator();
+    collapsing_header("Attractors").show(ui, |ui| {
+        let mut should_clear_attractors = false;
+
+        if let Some(attractors) = effect.attractors.as_mut() {
+            let mut to_remove: Option<usize> = None;
+
+            for (i, attractor) in attractors.iter_mut().enumerate() {
+                egui::Grid::new(format!("attractor_{i}"))
+                    .spacing([4., 4.])
+                    .min_col_width(80.)
+                    .num_columns(3)
+                    .show(ui, |ui| {
+                        ui.label(format!("Attractor {}", i + 1));
+
+                        if ui.button("🗑").clicked() {
+                            to_remove = Some(i);
+                        }
+                        ui.end_row();
+
+                        ui.label("Position");
+                        ui.horizontal(|ui| {
+                            ui.add(
+                                egui::DragValue::new(&mut attractor.position.x)
+                                    .prefix("X: ")
+                                    .speed(1.0),
+                            );
+                            ui.add(
+                                egui::DragValue::new(&mut attractor.position.y)
+                                    .prefix("Y: ")
+                                    .speed(1.0),
+                            );
+                        });
+                        ui.end_row();
+
+                        ui.label("Strength");
+                        ui.add(
+                            slider(&mut attractor.strength, 0.0..=100000000.0).logarithmic(true),
+                        );
+                        ui.end_row();
+
+                        ui.label("Min Distance");
+                        ui.add(slider(&mut attractor.min_distance, 0.1..=100.0));
+                        ui.end_row();
+                    });
+                ui.separator();
+            }
+
+            if let Some(index) = to_remove {
+                attractors.remove(index);
+            }
+
+            if attractors.is_empty() {
+                should_clear_attractors = true;
+            }
+
+            if ui.button("Add Attractor").clicked() {
+                attractors.push(Attractor {
+                    position: Vec2::new(0.0, 0.0),
+                    strength: 10000.0,
+                    min_distance: 5.0,
+                });
+            }
+        } else {
+            ui.label("No attractors defined");
+            if ui.button("Add First Attractor").clicked() {
+                effect.attractors = Some(vec![Attractor {
+                    position: Vec2::new(0.0, 0.0),
+                    strength: 10000.0,
+                    min_distance: 5.0,
+                }]);
+            }
+        }
+
+        if should_clear_attractors {
+            effect.attractors = None;
+        }
+    });
+
+    ui.separator();
     collapsing_header("Scale").show(ui, |ui| {
         if let Some(scale_curve) = effect.scale_curve.as_mut() {
             curve_field_f32(ui, scale_curve);
