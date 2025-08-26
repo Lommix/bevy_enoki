@@ -243,22 +243,25 @@ pub(crate) fn config_gui(
                     .num_columns(3)
                     .show(ui, |ui| {
                         ui.label(format!("Attractor {}", i + 1));
-                        ui.add(
-                            egui::DragValue::new(&mut attractor.position.x)
-                                .prefix("X: ")
-                                .speed(1.0),
-                        );
+
                         if ui.button("🗑").clicked() {
                             to_remove = Some(i);
                         }
                         ui.end_row();
 
                         ui.label("Position");
-                        ui.add(
-                            egui::DragValue::new(&mut attractor.position.y)
-                                .prefix("Y: ")
-                                .speed(1.0),
-                        );
+                        ui.horizontal(|ui| {
+                            ui.add(
+                                egui::DragValue::new(&mut attractor.position.x)
+                                    .prefix("X: ")
+                                    .speed(1.0),
+                            );
+                            ui.add(
+                                egui::DragValue::new(&mut attractor.position.y)
+                                    .prefix("Y: ")
+                                    .speed(1.0),
+                            );
+                        });
                         ui.end_row();
 
                         ui.label("Strength");
