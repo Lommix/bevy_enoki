@@ -135,6 +135,11 @@ pub(crate) fn config_gui(
         //
         slider_field(ui, "Amount", &mut effect.spawn_amount, 1..=1000000);
         slider_field(ui, "Spawn rate", &mut effect.spawn_rate, (0.01)..=120.);
+        
+        // Relative positioning checkbox
+        let mut relative_positioning = effect.relative_positioning.unwrap_or(false);
+        ui.checkbox(&mut relative_positioning, "Relative Positioning");
+        effect.relative_positioning = Some(relative_positioning);
 
         ui.label("Emission type");
 
