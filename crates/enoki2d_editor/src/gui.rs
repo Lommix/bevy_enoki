@@ -25,6 +25,20 @@ pub(crate) fn scene_gui(ui: &mut Ui, settings: &mut SceneSettings) {
                 egui::color_picker::Alpha::Opaque,
             );
             ui.end_row();
+            ui.checkbox(&mut settings.move_effect, "Move Effect");
+            ui.end_row();
+            ui.label("Move Radius");
+            ui.add_enabled(
+                settings.move_effect,
+                egui::Slider::new(&mut settings.move_effect_radius, 0.0..=1000.0),
+            );
+            ui.end_row();
+            ui.label("Move Speed");
+            ui.add_enabled(
+                settings.move_effect,
+                egui::Slider::new(&mut settings.move_effect_speed, 0.1..=5.0),
+            );
+            ui.end_row();
             ui.label(RichText::new("Bloom Settings").strong());
             ui.end_row();
             match &mut settings.bloom {
@@ -135,7 +149,7 @@ pub(crate) fn config_gui(
         //
         slider_field(ui, "Amount", &mut effect.spawn_amount, 1..=1000000);
         slider_field(ui, "Spawn rate", &mut effect.spawn_rate, (0.01)..=120.);
-        
+
         // Relative positioning checkbox
         let mut relative_positioning = effect.relative_positioning.unwrap_or(false);
         ui.checkbox(&mut relative_positioning, "Relative Positioning");

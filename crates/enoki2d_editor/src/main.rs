@@ -26,6 +26,9 @@ pub struct SceneSettings {
     pub show_gizmos: bool,
     pub show_grid: bool,
     pub repeat_playback: bool,
+    pub move_effect: bool,
+    pub move_effect_radius: f32,
+    pub move_effect_speed: f32,
     pub clear_color: Color32,
     pub bloom: Option<BloomSettings>,
 }
@@ -36,6 +39,9 @@ impl Default for SceneSettings {
             show_gizmos: true,
             show_grid: true,
             repeat_playback: true,
+            move_effect: false,
+            move_effect_radius: 150.0,
+            move_effect_speed: 1.0,
             clear_color: Color32::from_rgb(3, 3, 4),
             bloom: None,
         }
@@ -114,6 +120,7 @@ fn main() {
         )
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Update, gizmo.run_if(gizmos_active))
+        .add_systems(Update, move_spawner)
         .add_systems(
             Update,
             (update_scene, update_spawner).run_if(resource_changed::<SceneSettings>),
@@ -146,6 +153,22 @@ fn update_scene(settings: Res<SceneSettings>, mut camera_query: Query<(&mut Came
 
 fn gizmos_active(settings: Res<SceneSettings>) -> bool {
     settings.show_gizmos || settings.show_grid
+}
+
+
+fn move_spawner(time: Res<Time>, settings: Res<SceneSettings>, mut query: Query<&mut Transform, With<Spawner>>) {
+    for mut transform in query.iter_mut() {
+        if settings.move_effect {
+            let t = time.elapsed_secs();
+            
+            transform.translation.x = (t * settings.move_effect_speed).cos() * settings.move_effect_radius;
+            transform.translation.y = (t * settings.move_effect_speed).sin() * settings.move_effect_radius;
+            transform.translation.z = 0.0;
+        } else {
+            // Reset to origin when movement is disabled
+            transform.translation = Vec3::ZERO;
+        }
+    }
 }
 
 fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::SpriteMaterial>>) {
