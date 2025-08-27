@@ -220,6 +220,7 @@ pub struct Particle2dEffect {
     pub scale_curve: Option<curve::MultiCurve<f32>>,
     pub color_curve: Option<curve::MultiCurve<LinearRgba>>,
     pub attractors: Option<Vec<Attractor>>,
+    pub relative_positioning: Option<bool>,
 }
 
 impl Default for Particle2dEffect {
@@ -243,6 +244,7 @@ impl Default for Particle2dEffect {
             scale_curve: None,
             color_curve: None,
             attractors: None,
+            relative_positioning: None,
         }
     }
 }

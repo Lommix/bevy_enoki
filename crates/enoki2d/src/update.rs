@@ -22,6 +22,7 @@ pub struct ParticleSpawnerState {
     pub max_particles: u32,
     pub active: bool,
     pub timer: Timer,
+    pub previous_position: Option<Vec3>,
 }
 
 /// A clone of the asset, unique to each spawner
@@ -37,6 +38,7 @@ impl Default for ParticleSpawnerState {
             active: true,
             max_particles: u32::MAX,
             timer: Timer::new(Duration::ZERO, TimerMode::Repeating),
+            previous_position: None,
         }
     }
 }
@@ -135,8 +137,25 @@ pub(crate) fn update_spawner(
             let delta = time.delta_secs();
             let spawner_world_pos = transform.translation;
 
+            // Handle relative positioning
+            let position_delta = if effect.relative_positioning.unwrap_or(false) {
+                let current_pos = spawner_world_pos;
+                let delta = if let Some(prev_pos) = state.previous_position {
+                    current_pos - prev_pos
+                } else {
+                    Vec3::ZERO
+                };
+                state.previous_position = Some(current_pos);
+                delta
+            } else {
+                Vec3::ZERO
+            };
+
             store.par_splat_map_mut(ComputeTaskPool::get(), None, |_, particles| {
                 for particle in particles.iter_mut() {
+                    // position_delta should only be a value if relative_positioning is enabled
+                    particle.transform.translation += position_delta;
+
                     particle
                         .duration_fraction
                         .add_assign(delta / particle.duration);
