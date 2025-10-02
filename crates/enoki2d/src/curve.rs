@@ -7,7 +7,9 @@ where
     T: LerpThat<T> + Clone + Copy + std::fmt::Debug + Default,
 {
     pub points: Vec<(T, f32, Option<EaseFunction>)>,
+    #[serde(skip, default)]
     start_value: T,
+    #[serde(skip, default)]
     end_value: T,
 }
 
