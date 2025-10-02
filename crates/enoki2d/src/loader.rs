@@ -1,8 +1,12 @@
 use super::ParticleEffectInstance;
 use crate::{Particle2dEffect, ParticleEffectHandle};
-use bevy::{
-    asset::{io::Reader, AssetLoadError, AssetLoader, LoadContext},
-    prelude::*,
+use bevy_asset::{io::Reader, AssetEvent, AssetLoadError, AssetLoader, Assets, LoadContext};
+use bevy_ecs::{
+    component::Component,
+    entity::Entity,
+    message::MessageReader,
+    query::With,
+    system::{Commands, Query, Res},
 };
 
 #[derive(Default)]

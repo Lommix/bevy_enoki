@@ -1,5 +1,9 @@
 use super::{Particle2dMaterial, PARTICLE_SPRITE_FRAG};
-use bevy::{prelude::*, render::render_resource::AsBindGroup};
+use bevy_asset::{Asset, Handle};
+use bevy_image::Image;
+use bevy_math::UVec4;
+use bevy_reflect::TypePath;
+use bevy_render::render_resource::AsBindGroup;
 
 /// Sprite Material lets you add textures and animations
 /// to particles.
@@ -38,7 +42,7 @@ impl SpriteParticle2dMaterial {
 }
 
 impl Particle2dMaterial for SpriteParticle2dMaterial {
-    fn fragment_shader() -> bevy::shader::ShaderRef {
+    fn fragment_shader() -> bevy_shader::ShaderRef {
         PARTICLE_SPRITE_FRAG.into()
     }
 }

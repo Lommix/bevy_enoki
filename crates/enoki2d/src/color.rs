@@ -1,8 +1,9 @@
-use bevy::{
-    prelude::*,
-    render::render_resource::{AsBindGroup, ShaderType},
-    shader::ShaderRef,
-};
+use bevy_asset::Asset;
+use bevy_color::LinearRgba;
+use bevy_math::Vec4;
+use bevy_reflect::TypePath;
+use bevy_render::render_resource::{AsBindGroup, ShaderType};
+use bevy_shader::ShaderRef;
 
 use super::{prelude::Particle2dMaterial, PARTICLE_COLOR_FRAG};
 

@@ -6,15 +6,23 @@ use self::prelude::{
     Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState, ParticleStore,
 };
 use crate::sprite::SpriteParticle2dMaterial;
-use bevy::{
-    asset::{load_internal_asset, uuid_handle},
-    camera::{
-        primitives::Aabb,
-        visibility::{add_visibility_class, VisibilityClass, VisibilitySystems},
-    },
-    prelude::*,
-    render::sync_world::SyncToRenderWorld,
+use bevy_app::{App, First, Plugin, PostUpdate, Update};
+use bevy_asset::{load_internal_asset, uuid_handle, Asset, AssetApp, AssetEvent, Assets, Handle};
+use bevy_camera::{
+    primitives::Aabb,
+    visibility::{add_visibility_class, Visibility, VisibilityClass, VisibilitySystems},
 };
+use bevy_color::LinearRgba;
+use bevy_derive::{Deref, DerefMut};
+use bevy_ecs::{
+    component::Component,
+    schedule::{common_conditions::on_message, IntoScheduleConfigs},
+};
+use bevy_math::Vec2;
+use bevy_reflect::{Reflect, TypePath};
+use bevy_render::sync_world::SyncToRenderWorld;
+use bevy_shader::Shader;
+use bevy_transform::components::Transform;
 use color::ColorParticle2dMaterial;
 use serde::{Deserialize, Serialize};
 use values::Rval;

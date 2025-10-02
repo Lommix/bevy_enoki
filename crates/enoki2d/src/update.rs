@@ -1,10 +1,21 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
-use bevy::{
-    camera::primitives::Aabb,
-    prelude::*,
-    tasks::{ComputeTaskPool, ParallelSliceMut},
+use bevy_asset::Assets;
+use bevy_camera::primitives::Aabb;
+use bevy_color::LinearRgba;
+use bevy_derive::{Deref, DerefMut};
+use bevy_ecs::{
+    component::Component,
+    entity::Entity,
+    query::{Added, Without},
+    reflect::ReflectComponent,
+    system::{Commands, Query, Res},
 };
+use bevy_math::{Vec2, Vec3};
+use bevy_reflect::{prelude::ReflectDefault, Reflect};
+use bevy_tasks::{ComputeTaskPool, ParallelSliceMut};
+use bevy_time::{Time, Timer, TimerMode, Virtual};
+use bevy_transform::components::{GlobalTransform, Transform};
 use std::{ops::AddAssign, time::Duration};
 
 /// Tag Component, deactivates spawner after the first

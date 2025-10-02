@@ -140,13 +140,13 @@ fn debug_ui() -> impl Bundle {
                     (
                         row_node.clone(),
                         children![
-                            secondary_bundle("Particles:"),
+                            secondary_bundle("Particles"),
                             (value_bundle(), ParticlesText)
                         ]
                     ),
                     (
                         row_node.clone(),
-                        children![secondary_bundle("FPS:"), (value_bundle(), FpsText)]
+                        children![secondary_bundle("FPS"), (value_bundle(), FpsText)]
                     )
                 ],
             ),
