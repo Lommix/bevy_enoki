@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{weak_handle, RenderAssetUsages},
+    asset::{uuid_handle, RenderAssetUsages},
     image::{CompressedImageFormats, ImageSampler},
     prelude::*,
     tasks::AsyncComputeTaskPool,
@@ -23,7 +23,7 @@ impl Plugin for FileManagerPlugin {
 }
 
 pub(crate) const SPRITE_TEXTURE: Handle<Image> =
-    weak_handle!("8ffc5db4-dcc4-4650-bc91-3a93247a4df3");
+    uuid_handle!("8ffc5db4-dcc4-4650-bc91-3a93247a4df3");
 
 #[derive(Resource)]
 pub(crate) struct TextureChannel {
@@ -95,7 +95,7 @@ fn texture_file_watcher(
     };
 
     texture_channel.last_file_name = texture_wrapper.file_name;
-    images.insert(&SPRITE_TEXTURE, texture_wrapper.image);
+    let _ = images.insert(&SPRITE_TEXTURE, texture_wrapper.image);
 
     materials
         .iter_mut()

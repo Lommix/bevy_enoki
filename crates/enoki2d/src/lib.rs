@@ -7,13 +7,13 @@ use self::prelude::{
 };
 use crate::sprite::SpriteParticle2dMaterial;
 use bevy::{
-    asset::{load_internal_asset, weak_handle},
-    prelude::*,
-    render::{
+    asset::{load_internal_asset, uuid_handle},
+    camera::{
         primitives::Aabb,
-        sync_world::SyncToRenderWorld,
-        view::{self, VisibilityClass, VisibilitySystems},
+        visibility::{add_visibility_class, VisibilityClass, VisibilitySystems},
     },
+    prelude::*,
+    render::sync_world::SyncToRenderWorld,
 };
 use color::ColorParticle2dMaterial;
 use serde::{Deserialize, Serialize};
@@ -43,13 +43,13 @@ pub mod prelude {
 }
 
 pub(crate) const PARTICLE_VERTEX_OUT: Handle<Shader> =
-    weak_handle!("8d6bc2d4-7577-4890-a3a4-0faea3a27448");
+    uuid_handle!("8d6bc2d4-7577-4890-a3a4-0faea3a27448");
 pub(crate) const PARTICLE_VERTEX: Handle<Shader> =
-    weak_handle!("57c98346-305c-461a-8cdc-7b3fac8be0ca");
+    uuid_handle!("57c98346-305c-461a-8cdc-7b3fac8be0ca");
 pub(crate) const PARTICLE_COLOR_FRAG: Handle<Shader> =
-    weak_handle!("f60a0cf3-19d3-4425-b6f8-b06bf7ba2f34");
+    uuid_handle!("f60a0cf3-19d3-4425-b6f8-b06bf7ba2f34");
 pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
-    weak_handle!("9b13ccf9-eea1-4515-bdd1-1b4131368f71");
+    uuid_handle!("9b13ccf9-eea1-4515-bdd1-1b4131368f71");
 
 pub struct EnokiPlugin;
 impl Plugin for EnokiPlugin {
@@ -93,14 +93,16 @@ impl Plugin for EnokiPlugin {
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
 
-        app.world_mut()
+        let _ = app
+            .world_mut()
             .resource_mut::<Assets<ColorParticle2dMaterial>>()
             .insert(
                 &Handle::<ColorParticle2dMaterial>::default(),
                 ColorParticle2dMaterial::default(),
             );
 
-        app.world_mut()
+        let _ = app
+            .world_mut()
             .resource_mut::<Assets<Particle2dEffect>>()
             .insert(
                 &Handle::<Particle2dEffect>::default(),
@@ -109,7 +111,7 @@ impl Plugin for EnokiPlugin {
 
         app.add_systems(
             First,
-            loader::on_asset_loaded.run_if(on_event::<AssetEvent<Particle2dEffect>>),
+            loader::on_asset_loaded.run_if(on_message::<AssetEvent<Particle2dEffect>>),
         );
 
         app.add_systems(
@@ -140,7 +142,7 @@ pub struct NoAutoAabb;
 /// tag component for visibilty check
 #[derive(Clone, Component, Default)]
 #[require(VisibilityClass)]
-#[component(on_add = view::add_visibility_class::<RenderParticleTag>)]
+#[component(on_add = add_visibility_class::<RenderParticleTag>)]
 pub struct RenderParticleTag;
 
 /// The main particle spawner components

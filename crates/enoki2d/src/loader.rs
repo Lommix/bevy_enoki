@@ -1,5 +1,5 @@
 use super::ParticleEffectInstance;
-use crate::{ParticleEffectHandle, Particle2dEffect};
+use crate::{Particle2dEffect, ParticleEffectHandle};
 use bevy::{
     asset::{io::Reader, AssetLoadError, AssetLoader, LoadContext},
     prelude::*,
@@ -44,7 +44,7 @@ pub struct ReloadEffectTag;
 
 pub(crate) fn on_asset_loaded(
     mut cmd: Commands,
-    mut events: EventReader<AssetEvent<Particle2dEffect>>,
+    mut events: MessageReader<AssetEvent<Particle2dEffect>>,
     spawners: Query<(Entity, &ParticleEffectHandle)>,
 ) {
     events.read().for_each(|event| {

@@ -7,14 +7,14 @@ use std::{
 };
 
 use bevy::{
-    asset::weak_handle, prelude::*, render::render_resource::AsBindGroup,
+    asset::uuid_handle, prelude::*, render::render_resource::AsBindGroup, shader::ShaderRef,
     tasks::AsyncComputeTaskPool, time::common_conditions::on_timer,
 };
 use bevy_enoki::prelude::{Particle2dMaterial, Particle2dMaterialPlugin};
 use rfd::AsyncFileDialog;
 
 pub(crate) const SPRITE_SHADER: Handle<Shader> =
-    weak_handle!("f3c0d7d0-06ef-4a6a-b715-f3578c8692f2");
+    uuid_handle!("f3c0d7d0-06ef-4a6a-b715-f3578c8692f2");
 
 pub struct ShaderPlugin;
 impl Plugin for ShaderPlugin {
@@ -56,7 +56,7 @@ fn reload_shader(mut shaders: ResMut<Assets<Shader>>, watcher: Res<ShaderWatch>)
             let last_mod = get_last_modified(&inner.path).unwrap();
             if inner.last_modified < last_mod {
                 let shader = load_shader(&inner.path).unwrap();
-                shaders.insert(&SPRITE_SHADER, shader);
+                _ = shaders.insert(&SPRITE_SHADER, shader);
                 info!("shader `{}` reloaded!", inner.path);
                 inner.last_modified = last_mod;
             }
@@ -76,7 +76,7 @@ fn load_shader(path: impl AsRef<Path>) -> anyhow::Result<Shader> {
 }
 
 pub fn setup(mut shaders: ResMut<Assets<Shader>>) {
-    shaders.insert(&SPRITE_SHADER, Shader::from_wgsl(DEFAULT_SHADER_STR, ""));
+    _ = shaders.insert(&SPRITE_SHADER, Shader::from_wgsl(DEFAULT_SHADER_STR, ""));
 }
 
 pub const DEFAULT_SHADER_STR: &str = r#"
@@ -108,7 +108,7 @@ pub struct SpriteMaterial {
 }
 
 impl Particle2dMaterial for SpriteMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> ShaderRef {
         SPRITE_SHADER.into()
     }
 }

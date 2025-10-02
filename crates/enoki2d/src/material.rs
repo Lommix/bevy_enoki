@@ -11,9 +11,9 @@ use bevy::{
         },
     },
     math::FloatOrd,
+    mesh::{PrimitiveTopology, VertexBufferLayout},
     prelude::*,
     render::{
-        mesh::PrimitiveTopology,
         render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets},
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -24,10 +24,9 @@ use bevy::{
             BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, BlendState, BufferUsages,
             BufferVec, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
             DepthStencilState, FrontFace, IndexFormat, OwnedBindingResource, PipelineCache,
-            PolygonMode, PrimitiveState, RenderPipelineDescriptor, ShaderRef, ShaderStages,
-            ShaderType, SpecializedRenderPipeline, SpecializedRenderPipelines, StencilFaceState,
-            StencilState, TextureFormat, VertexAttribute, VertexBufferLayout, VertexFormat,
-            VertexStepMode,
+            PolygonMode, PrimitiveState, RenderPipelineDescriptor, ShaderStages, ShaderType,
+            SpecializedRenderPipeline, SpecializedRenderPipelines, StencilFaceState, StencilState,
+            TextureFormat, VertexAttribute, VertexFormat, VertexStepMode,
         },
         renderer::{RenderDevice, RenderQueue},
         sync_world::RenderEntity,
@@ -35,9 +34,10 @@ use bevy::{
             ExtractedView, RenderVisibleEntities, ViewTarget, ViewUniform, ViewUniformOffset,
             ViewUniforms,
         },
-        Extract, Render, RenderApp, RenderSet,
+        Extract, Render, RenderApp, RenderSystems,
     },
-    sprite::Mesh2dPipelineKey,
+    shader::ShaderRef,
+    sprite_render::Mesh2dPipelineKey,
     tasks::{ComputeTaskPool, ParallelSlice},
 };
 use std::{hash::Hash, ops::Range};
@@ -80,8 +80,8 @@ impl<M: Particle2dMaterial> Plugin for Particle2dMaterialPlugin<M> {
             .add_systems(
                 Render,
                 (
-                    queue_particles::<M>.in_set(RenderSet::Queue),
-                    prepare_particles_instance_buffers::<M>.in_set(RenderSet::PrepareResources),
+                    queue_particles::<M>.in_set(RenderSystems::Queue),
+                    prepare_particles_instance_buffers::<M>.in_set(RenderSystems::PrepareResources),
                 ),
             );
     }
@@ -144,7 +144,7 @@ impl<M: Particle2dMaterial> Default for ExtracedParticleSpawner<M> {
 // #extract
 
 fn extract_materials<M: Particle2dMaterial>(
-    mut events: Extract<EventReader<AssetEvent<M>>>,
+    mut events: Extract<MessageReader<AssetEvent<M>>>,
     mut materials: ResMut<ExtractedParticleMaterials<M>>,
     assets: Extract<Res<Assets<M>>>,
 ) {
@@ -289,14 +289,14 @@ impl From<&Particle> for InstanceData {
     }
 }
 
-#[derive(Component, Deref)]
-pub struct InstanceMaterialData(Vec<InstanceData>);
+// #[derive(Component, Deref)]
+// pub struct InstanceMaterialData(Vec<InstanceData>);
 
 #[derive(Resource)]
 pub struct PreparedParticleMaterial<M: Particle2dMaterial> {
     pub bind_group: BindGroup,
     pub _bindings: Vec<(u32, OwnedBindingResource)>,
-    pub _key: M::Data,
+    pub _key: Option<M::Data>,
 }
 
 impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
@@ -307,12 +307,13 @@ impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
         material: Self::SourceAsset,
         _: AssetId<Self::SourceAsset>,
         (render_device, pipeline, param): &mut SystemParamItem<Self::Param>,
+        _: Option<&Self>,
     ) -> Result<Self, bevy::render::render_asset::PrepareAssetError<Self::SourceAsset>> {
         match material.as_bind_group(&pipeline.uniform_layout, render_device, param) {
             Ok(prepared) => Ok(PreparedParticleMaterial {
                 bind_group: prepared.bind_group,
                 _bindings: prepared.bindings.0,
-                _key: prepared.data,
+                _key: None,
             }),
             Err(AsBindGroupError::RetryNextUpdate) => {
                 Err(PrepareAssetError::RetryNextUpdate(material))
@@ -464,7 +465,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
             vertex: bevy::render::render_resource::VertexState {
                 shader: self.vertex_shader.clone(),
                 shader_defs: vec![],
-                entry_point: "vertex".into(),
+                entry_point: Some("vertex".into()),
                 buffers: vec![VertexBufferLayout {
                     array_stride: 80,
                     step_mode: VertexStepMode::Instance,
@@ -505,7 +506,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
             fragment: Some(bevy::render::render_resource::FragmentState {
                 shader: self.fragment_shader.clone(),
                 shader_defs: vec![],
-                entry_point: "fragment".into(),
+                entry_point: Some("fragment".into()),
                 targets: vec![Some(ColorTargetState {
                     format,
                     blend: Some(BlendState::ALPHA_BLENDING),
@@ -598,8 +599,8 @@ impl<const I: usize, M: Particle2dMaterial, P: PhaseItem> RenderCommand<P>
     #[inline]
     fn render<'w>(
         item: &P,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewQuery>,
-        _item_query: Option<bevy::ecs::query::ROQueryItem<'w, Self::ItemQuery>>,
+        _view: bevy::ecs::query::ROQueryItem<'w, '_, Self::ViewQuery>,
+        _item_query: Option<bevy::ecs::query::ROQueryItem<'w, '_, Self::ItemQuery>>,
         params: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {

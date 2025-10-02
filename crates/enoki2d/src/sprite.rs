@@ -38,7 +38,7 @@ impl SpriteParticle2dMaterial {
 }
 
 impl Particle2dMaterial for SpriteParticle2dMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> bevy::shader::ShaderRef {
         PARTICLE_SPRITE_FRAG.into()
     }
 }

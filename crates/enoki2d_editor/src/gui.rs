@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::ops::RangeInclusive;
 
-use bevy::{core_pipeline::bloom::Bloom, prelude::*};
+use bevy::prelude::*;
 use bevy_egui::{
     egui::{
         self, emath::Numeric, style::HandleShape, Color32, ColorImage, Pos2, Rect, RichText,
@@ -121,7 +121,7 @@ fn collapsing_header(text: impl Into<String>) -> egui::CollapsingHeader {
     egui::CollapsingHeader::new(RichText::new(text).strong().size(19.0)).default_open(true)
 }
 
-fn slider<T: Numeric>(value: &mut T, range: RangeInclusive<T>) -> Slider {
+fn slider<'a, T: Numeric>(value: &'a mut T, range: RangeInclusive<T>) -> Slider<'a> {
     Slider::new(value, range)
         .trailing_fill(true)
         .handle_shape(HandleShape::Rect { aspect_ratio: 0.4 })
