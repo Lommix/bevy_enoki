@@ -17,6 +17,10 @@ name = "dynamic"
 path = "src/dynamic.rs"
 
 [[bin]]
+name = "split_screen"
+path = "src/split_screen.rs"
+
+[[bin]]
 name = "material"
 path = "src/material.rs"
 
