@@ -1,15 +1,27 @@
 use super::{prelude::EmissionShape, Particle2dEffect, ParticleEffectHandle};
 use crate::values::Random;
-use bevy::{
-    prelude::*,
-    render::primitives::Aabb,
-    tasks::{ComputeTaskPool, ParallelSliceMut},
+use bevy_asset::Assets;
+use bevy_camera::primitives::Aabb;
+use bevy_color::LinearRgba;
+use bevy_derive::{Deref, DerefMut};
+use bevy_ecs::{
+    component::Component,
+    entity::Entity,
+    query::{Added, Without},
+    reflect::ReflectComponent,
+    system::{Commands, Query, Res},
 };
+use bevy_math::{Vec2, Vec3};
+use bevy_reflect::{prelude::ReflectDefault, Reflect};
+use bevy_tasks::{ComputeTaskPool, ParallelSliceMut};
+use bevy_time::{Time, Timer, TimerMode, Virtual};
+use bevy_transform::components::{GlobalTransform, Transform};
 use std::{ops::AddAssign, time::Duration};
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug, Reflect)]
+#[reflect(Component, Debug, Default)]
 pub enum OneShot {
     #[default]
     Deactivate,
@@ -125,7 +137,7 @@ pub(crate) fn update_spawner(
                 .set_duration(Duration::from_secs_f32(effect.spawn_rate));
             state.timer.tick(time.delta());
 
-            if state.timer.finished() && state.active {
+            if state.timer.is_finished() && state.active {
                 for _ in 0..effect.spawn_amount {
                     store.push(create_particle(effect, &transform))
                 }

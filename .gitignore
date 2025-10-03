@@ -1,2 +1,4 @@
 /target
 *.bak
+.DS_Store
+Cargo.lock

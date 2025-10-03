@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_enoki::prelude::*;
 
+mod utils;
+
 const RADIUS: f32 = 200.0;
 const SPEED: f32 = 1.5;
 
@@ -8,6 +10,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(EnokiPlugin)
+        .add_plugins(utils::camera_and_ui_plugin)
         .add_systems(Startup, setup)
         .add_systems(Update, move_spawners)
         .run();
@@ -19,8 +22,6 @@ struct MovingSpawner {
 }
 
 fn setup(mut cmds: Commands, server: Res<AssetServer>) {
-    cmds.spawn(Camera2d);
-
     // Spawn particle system with relative positioning - starts on right side
     cmds.spawn((
         ParticleSpawner::default(),

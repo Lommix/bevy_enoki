@@ -1,3 +1,9 @@
+
+# 0.5.0
+
+- Added support for Bevy 0.17
+- Editor support for file drop
+
 # 0.4.0
 
 - bevy 0.16 update. No breaking changings. Huge performance gain (removed atan).

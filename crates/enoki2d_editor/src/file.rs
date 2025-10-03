@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{weak_handle, RenderAssetUsages},
+    asset::{uuid_handle, RenderAssetUsages},
     image::{CompressedImageFormats, ImageSampler},
     prelude::*,
     tasks::AsyncComputeTaskPool,
@@ -19,11 +19,86 @@ impl Plugin for FileManagerPlugin {
             Update,
             (effect_file_watcher, texture_file_watcher).run_if(on_timer(Duration::from_millis(50))),
         );
+        #[cfg(not(target_arch = "wasm32"))]
+        app.add_systems(Update, file_drop);
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn file_drop(
+    mut evr_dnd: MessageReader<FileDragAndDrop>,
+    effect_channel: Res<EffectChannel>,
+    texture_channel: Res<TextureChannel>,
+) {
+    for ev in evr_dnd.read() {
+        if let FileDragAndDrop::DroppedFile {
+            window: _,
+            path_buf,
+        } = ev
+        {
+            let file_path = path_buf.to_string_lossy();
+            trace!("Dropped file: {}", file_path);
+            if file_path.ends_with(".particle.ron") {
+                let Ok(data) = std::fs::read(&path_buf) else {
+                    trace!("Failed to read file");
+                    continue;
+                };
+                let Ok(effect) = ron::de::from_bytes::<Particle2dEffect>(&data) else {
+                    trace!("Failed to parse the file");
+                    continue;
+                };
+                let packed_effect = EffectFileWrapper {
+                    effect,
+                    file_name: path_buf
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                };
+                let r = effect_channel.send.send(packed_effect);
+                trace!(
+                    "Read file with result: {}",
+                    if r.is_ok() { "Success" } else { "Failed" }
+                );
+            } else {
+                let Ok(data) = std::fs::read(&path_buf) else {
+                    trace!("Failed to read file");
+                    continue;
+                };
+                let image = match Image::from_buffer(
+                    &data,
+                    bevy::image::ImageType::Format(ImageFormat::Png),
+                    CompressedImageFormats::NONE,
+                    false,
+                    ImageSampler::nearest(),
+                    RenderAssetUsages::RENDER_WORLD,
+                ) {
+                    Ok(img) => img,
+                    Err(err) => {
+                        error!("Failed to load image!\n\n {:?}", err);
+                        return;
+                    }
+                };
+
+                let packed_effect = TextureFileWrapper {
+                    image,
+                    file_name: path_buf
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                };
+
+                match texture_channel.send.send(packed_effect) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Channel failed!\n\n {:?}", err);
+                    }
+                };
+            }
+        }
     }
 }
 
 pub(crate) const SPRITE_TEXTURE: Handle<Image> =
-    weak_handle!("8ffc5db4-dcc4-4650-bc91-3a93247a4df3");
+    uuid_handle!("8ffc5db4-dcc4-4650-bc91-3a93247a4df3");
 
 #[derive(Resource)]
 pub(crate) struct TextureChannel {
@@ -95,7 +170,7 @@ fn texture_file_watcher(
     };
 
     texture_channel.last_file_name = texture_wrapper.file_name;
-    images.insert(&SPRITE_TEXTURE, texture_wrapper.image);
+    let _ = images.insert(&SPRITE_TEXTURE, texture_wrapper.image);
 
     materials
         .iter_mut()
