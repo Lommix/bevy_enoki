@@ -194,7 +194,7 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
         },
         Msaa::Off,
         PanCam {
-            grab_buttons: vec![MouseButton::Middle],
+            grab_buttons: vec![MouseButton::Left, MouseButton::Middle],
             ..default()
         },
     ));
