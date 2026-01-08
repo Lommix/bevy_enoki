@@ -41,7 +41,7 @@ bevy_camera = { version = "0.17" }
 bevy_shader = { version = "0.17" }
 serde = { version = "1.0.197", features = ["derive"] }
 ron = "0.10"
-rand = { version = "0.8.5" }
+rand = "0.9.2"
 
-[target.wasm32-unknown-unknown.dependencies]
+[target.'cfg(all(target_family = "wasm", any(target_os = "unknown", target_os = "none")))'.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }

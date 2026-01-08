@@ -26,5 +26,5 @@ serde = { version = "1.0.197", features = ["derive"] }
 tracing-subscriber = "0.3.18"
 bevy_pancam = {git = "https://github.com/pindash-io/bevy_pancam.git", branch = "bevy-0.17"}
 
-[target.wasm32-unknown-unknown.dependencies]
-getrandom = { version = "0.3.3", features = ["wasm_js"] }
+[target.'cfg(all(target_family = "wasm", any(target_os = "unknown", target_os = "none")))'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
