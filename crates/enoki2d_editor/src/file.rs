@@ -38,7 +38,7 @@ fn file_drop(
             let file_path = path_buf.to_string_lossy();
             trace!("Dropped file: {}", file_path);
             if file_path.ends_with(".particle.ron") {
-                let Ok(data) = std::fs::read(&path_buf) else {
+                let Ok(data) = std::fs::read(path_buf) else {
                     trace!("Failed to read file");
                     continue;
                 };
@@ -59,7 +59,7 @@ fn file_drop(
                     if r.is_ok() { "Success" } else { "Failed" }
                 );
             } else {
-                let Ok(data) = std::fs::read(&path_buf) else {
+                let Ok(data) = std::fs::read(path_buf) else {
                     trace!("Failed to read file");
                     continue;
                 };
