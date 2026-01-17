@@ -16,7 +16,6 @@ dev = [
     "bevy_render/trace",
     "bevy_core_pipeline/trace",
     "bevy_render/tracing-tracy",
-    "bevy_render/tracing-tracy"
 ]
 
 [dependencies]
