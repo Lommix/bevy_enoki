@@ -55,16 +55,8 @@ fn show_fps(
 }
 
 fn debug_ui() -> impl Bundle {
-    let font = TextFont {
-        font_size: 20.,
-        line_height: LineHeight::Px(24.),
-        ..default()
-    };
-    let description_font = TextFont {
-        font_size: 16.,
-        line_height: LineHeight::Px(24.),
-        ..default()
-    };
+    let font = TextFont::from_font_size(20.);
+    let description_font = TextFont::from_font_size(16.);
     let row_node = Node {
         flex_direction: FlexDirection::Row,
         justify_content: JustifyContent::SpaceAround,
@@ -91,11 +83,13 @@ fn debug_ui() -> impl Bundle {
             text_shadow,
             description_font.clone(),
             description_node.clone(),
+            LineHeight::Px(24.),
         )
     };
     let value_bundle = || {
         (
             font.clone(),
+            LineHeight::Px(24.),
             text_shadow,
             primary_color,
             TextLayout::new_with_justify(Justify::Right),
@@ -116,10 +110,10 @@ fn debug_ui() -> impl Bundle {
                 bottom: if is_top { Val::Auto } else { px(10.0) },
                 position_type: PositionType::Absolute,
                 border: UiRect::all(px(5.0)),
+                border_radius: BorderRadius::all(px(10.0)),
                 ..Default::default()
             },
             BorderColor::all(bevy::color::palettes::tailwind::NEUTRAL_600.with_alpha(0.3)),
-            BorderRadius::all(px(10.0)),
             BackgroundColor(
                 bevy::color::palettes::tailwind::NEUTRAL_900
                     // .with_alpha(0.8)
