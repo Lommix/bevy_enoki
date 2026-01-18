@@ -20,7 +20,7 @@ crossbeam = { version = "0.8.4", features = [
   "crossbeam-channel",
 ] }
 # futures-lite = "2.3.0"
-rfd = "0.15"
+rfd = "0.17"
 ron = "0.10"
 serde = { version = "1.0.197", features = ["derive"] }
 tracing-subscriber = "0.3.20"
