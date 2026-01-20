@@ -8,8 +8,9 @@ use bevy_ecs::{
     query::With,
     system::{Commands, Query, Res},
 };
+use bevy_reflect::TypePath;
 
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct ParticleEffectLoader;
 impl AssetLoader for ParticleEffectLoader {
     type Asset = Particle2dEffect;

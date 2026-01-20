@@ -31,7 +31,7 @@ use bevy_render::{
     },
     render_resource::{
         binding_types::uniform_buffer, AsBindGroup, AsBindGroupError, BindGroup, BindGroupEntries,
-        BindGroupLayout, BindGroupLayoutEntries, BlendState, BufferUsages, BufferVec,
+        BindGroupLayoutDescriptor, BindGroupLayoutEntries, BlendState, BufferUsages, BufferVec,
         ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
         FrontFace, IndexFormat, OwnedBindingResource, PipelineCache, PolygonMode, PrimitiveState,
         RenderPipelineDescriptor, ShaderStages, ShaderType, SpecializedRenderPipeline,
@@ -311,15 +311,25 @@ pub struct PreparedParticleMaterial<M: Particle2dMaterial> {
 
 impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
     type SourceAsset = M;
-    type Param = (SRes<RenderDevice>, SRes<Particle2dPipeline<M>>, M::Param);
+    type Param = (
+        SRes<RenderDevice>,
+        SRes<PipelineCache>,
+        SRes<Particle2dPipeline<M>>,
+        M::Param,
+    );
 
     fn prepare_asset(
         material: Self::SourceAsset,
         _: AssetId<Self::SourceAsset>,
-        (render_device, pipeline, param): &mut SystemParamItem<Self::Param>,
+        (render_device, pipeline_cache, pipeline, param): &mut SystemParamItem<Self::Param>,
         _: Option<&Self>,
     ) -> Result<Self, bevy_render::render_asset::PrepareAssetError<Self::SourceAsset>> {
-        match material.as_bind_group(&pipeline.uniform_layout, render_device, param) {
+        match material.as_bind_group(
+            &pipeline.uniform_layout,
+            render_device,
+            pipeline_cache,
+            param,
+        ) {
             Ok(prepared) => Ok(PreparedParticleMaterial {
                 bind_group: prepared.bind_group,
                 _bindings: prepared.bindings.0,
@@ -345,6 +355,7 @@ impl<M: Particle2dMaterial> Default for RenderParticleMaterials<M> {
 // -----------------------------------
 // #prep
 
+#[allow(clippy::too_many_arguments)]
 fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
     mut cmd: Commands,
     mut extracted_spawner: ResMut<ExtracedParticleSpawner<M>>,
@@ -352,12 +363,13 @@ fn prepare_particles_instance_buffers<M: Particle2dMaterial>(
     render_queue: Res<RenderQueue>,
     view_uniforms: Res<ViewUniforms>,
     particle_pipeline: Res<Particle2dPipeline<M>>,
+    pipeline_cache: Res<PipelineCache>,
     mut particle_buffer: ResMut<InstanceBuffer<M>>,
 ) {
     if let Some(view_binding) = view_uniforms.uniforms.binding() {
         particle_buffer.view_bind_group = Some(render_device.create_bind_group(
             "particle_view_bind_group",
-            &particle_pipeline.view_layout,
+            &pipeline_cache.get_bind_group_layout(&particle_pipeline.view_layout),
             &BindGroupEntries::single(view_binding),
         ));
     }
@@ -417,8 +429,8 @@ pub struct ParticleInstanceBatch {
 pub struct Particle2dPipeline<M: Particle2dMaterial> {
     vertex_shader: Handle<Shader>,
     fragment_shader: Handle<Shader>,
-    uniform_layout: BindGroupLayout,
-    view_layout: BindGroupLayout,
+    uniform_layout: BindGroupLayoutDescriptor,
+    view_layout: BindGroupLayoutDescriptor,
     _m: std::marker::PhantomData<M>,
 }
 
@@ -440,7 +452,7 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
         let vertex_shader = super::PARTICLE_VERTEX;
         let render_device = world.resource::<RenderDevice>();
 
-        let view_layout = render_device.create_bind_group_layout(
+        let view_layout = BindGroupLayoutDescriptor::new(
             "particle_view_layout",
             &BindGroupLayoutEntries::single(
                 ShaderStages::VERTEX_FRAGMENT,
@@ -450,7 +462,7 @@ impl<M: Particle2dMaterial> FromWorld for Particle2dPipeline<M> {
 
         Particle2dPipeline {
             view_layout,
-            uniform_layout: M::bind_group_layout(render_device), //world.resource::<ParticleUniformLayout>().0.clone(),
+            uniform_layout: M::bind_group_layout_descriptor(render_device), //world.resource::<ParticleUniformLayout>().0.clone(),
             vertex_shader,
             fragment_shader,
             _m: std::marker::PhantomData::<M>,
@@ -662,7 +674,7 @@ impl<P: PhaseItem, M: Particle2dMaterial> RenderCommand<P> for DrawParticleInsta
             return RenderCommandResult::Failure("Index buffer was never written to GPU");
         };
 
-        pass.set_index_buffer(index_buffer.slice(..), 0, IndexFormat::Uint32);
+        pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
         pass.set_vertex_buffer(0, instance_buffer.slice(..));
         pass.draw_indexed(0..6, 0, batch.range.clone());
 
