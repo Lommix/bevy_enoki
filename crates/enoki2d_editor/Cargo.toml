@@ -24,7 +24,7 @@ rfd = "0.17"
 ron = "0.12"
 serde = { version = "1.0.197", features = ["derive"] }
 tracing-subscriber = "0.3.20"
-bevy_pancam = { git = "https://github.com/blip-radar/bevy_pancam.git", branch = "bevy-0-18" }
+bevy_pancam = "0.20"
 
 [target.'cfg(all(target_family = "wasm", any(target_os = "unknown", target_os = "none")))'.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
