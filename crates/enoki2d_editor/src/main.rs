@@ -194,7 +194,7 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
         },
         Msaa::Off,
         PanCam {
-            grab_buttons: vec![MouseButton::Middle],
+            grab_buttons: vec![MouseButton::Left, MouseButton::Middle],
             ..default()
         },
     ));
@@ -521,7 +521,7 @@ pub(crate) fn bottom_panel(
         .frame(frame)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                let text = "Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom";
+                let text = "Log - [Mouse::Middle or Mouse::Left]: pan [Mouse::Wheel]: zoom";
                 if logs.is_empty() {
                     ui.label(text);
                 } else {
