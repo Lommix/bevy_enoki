@@ -15,7 +15,7 @@ pub struct ParticlesText;
 pub(crate) fn camera_and_ui_plugin(app: &mut App) {
     app.add_systems(PostStartup, spawn_ui)
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        .add_systems(Update, (show_fps, move_camera));
+        .add_systems(Update, (show_fps, move_camera, toggle_aabb_gizmo));
 }
 fn spawn_ui(mut cmd: Commands) {
     cmd.spawn((
@@ -65,7 +65,7 @@ fn debug_ui() -> impl Bundle {
     };
     let description_node = Node {
         margin: UiRect::right(px(10.0)),
-        width: Val::Px(100.0),
+        width: Val::Px(150.0),
         ..Default::default()
     };
     let text_shadow = TextShadow {
@@ -148,7 +148,7 @@ fn debug_ui() -> impl Bundle {
                 frame_bundle(false),
                 children![
                     (
-                        Text(String::from("Camera Controls")),
+                        Text(String::from("Controls")),
                         font.clone(),
                         primary_color,
                         text_shadow,
@@ -171,10 +171,17 @@ fn debug_ui() -> impl Bundle {
                     (
                         row_node.clone(),
                         children![
-                            secondary_bundle("Move"),
+                            secondary_bundle("Move Camera"),
                             (value_bundle(), Text::new("WSAD")),
                         ],
-                    )
+                    ),
+                    (
+                        row_node.clone(),
+                        children![
+                            secondary_bundle("Show/Hide AABB"),
+                            (value_bundle(), Text::new("Q"),),
+                        ],
+                    ),
                 ],
             ),
         ],
@@ -199,4 +206,14 @@ fn move_camera(
         t.translation.y += y as f32 * 300. * time.delta_secs();
         t.scale = (t.scale + (zoom as f32) * 0.1).max(Vec3::splat(0.1));
     });
+}
+
+fn toggle_aabb_gizmo(
+    inputs: Res<ButtonInput<KeyCode>>,
+    mut gizmo_config_store: ResMut<GizmoConfigStore>,
+) {
+    if inputs.just_pressed(KeyCode::KeyQ) {
+        let aabb_gizmo = gizmo_config_store.config_mut::<AabbGizmoConfigGroup>().1;
+        aabb_gizmo.draw_all = !aabb_gizmo.draw_all;
+    }
 }
