@@ -319,7 +319,7 @@ fn update_particle(
     particle.transform.rotate_local_z(*rot_velo * delta);
 }
 
-pub(crate) fn calculcate_particle_bounds(
+pub(crate) fn calculate_particle_bounds(
     mut cmd: Commands,
     spawners: Query<(Entity, &ParticleStore, &GlobalTransform), Without<crate::NoAutoAabb>>,
 ) {

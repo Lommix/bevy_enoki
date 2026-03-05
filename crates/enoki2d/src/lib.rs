@@ -135,7 +135,7 @@ impl Plugin for EnokiPlugin {
         app.add_systems(
             PostUpdate,
             (
-                update::calculcate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
+                update::calculate_particle_bounds.in_set(VisibilitySystems::CalculateBounds),
                 // check_visibility.in_set(VisibilitySystems::CheckVisibility),
             ),
         );
