@@ -319,11 +319,11 @@ fn update_particle(
     particle.transform.rotate_local_z(*rot_velo * delta);
 }
 
-pub(crate) fn calculcate_particle_bounds(
+pub(crate) fn calculate_particle_bounds(
     mut cmd: Commands,
-    spawners: Query<(Entity, &ParticleStore), Without<crate::NoAutoAabb>>,
+    spawners: Query<(Entity, &ParticleStore, &GlobalTransform), Without<crate::NoAutoAabb>>,
 ) {
-    spawners.iter().for_each(|(entity, store)| {
+    spawners.iter().for_each(|(entity, store, transform)| {
         if store.is_empty() {
             return;
         }
@@ -333,14 +333,17 @@ pub(crate) fn calculcate_particle_bounds(
             .iter()
             .enumerate()
             .filter(|(i, _)| i % accuracy == 0)
-            .fold((Vec2::ZERO, Vec2::ZERO), |mut acc, (_, particle)| {
+            .fold((Vec2::MAX, Vec2::MIN), |mut acc, (_, particle)| {
                 acc.0.x = acc.0.x.min(particle.transform.translation.x);
                 acc.0.y = acc.0.y.min(particle.transform.translation.y);
                 acc.1.x = acc.1.x.max(particle.transform.translation.x);
                 acc.1.y = acc.1.y.max(particle.transform.translation.y);
                 acc
             });
-        cmd.entity(entity)
-            .try_insert(Aabb::from_min_max(min.extend(0.), max.extend(0.)));
+
+        let mut aabb = Aabb::from_min_max(min.extend(0.), max.extend(0.));
+        aabb.center -= transform.translation().to_vec3a();
+
+        cmd.entity(entity).try_insert(aabb);
     });
 }
