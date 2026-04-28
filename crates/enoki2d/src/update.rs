@@ -104,7 +104,7 @@ pub(crate) fn remove_finished_spawner(
         .iter()
         .for_each(|(entity, store, controller, one_shot)| {
             if matches!(one_shot, OneShot::Despawn) && !controller.active && store.is_empty() {
-                cmd.entity(entity).despawn();
+                cmd.entity(entity).try_despawn();
             }
         })
 }
