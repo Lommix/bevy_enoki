@@ -11,12 +11,12 @@ use bevy_ecs::{
     reflect::ReflectComponent,
     system::{Commands, Query, Res},
 };
-use bevy_math::{Vec2, Vec3};
+use bevy_math::{EulerRot, Vec2, Vec3};
 use bevy_reflect::{prelude::ReflectDefault, Reflect};
-use bevy_tasks::{ComputeTaskPool, ParallelSliceMut};
 use bevy_time::{Time, Timer, TimerMode, Virtual};
 use bevy_transform::components::{GlobalTransform, Transform};
-use std::{ops::AddAssign, time::Duration};
+use std::time::Duration;
+use wide::f32x8;
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
@@ -56,26 +56,168 @@ impl Default for ParticleSpawnerState {
 }
 
 /// Component for storing particle data
-#[derive(Component, Default, Clone, Reflect, Deref, DerefMut)]
+#[derive(Component, Default, Clone, Reflect)]
 pub struct ParticleStore {
-    #[deref]
-    pub particles: Vec<Particle>,
+    pub(crate) position_x: Vec<f32>,
+    pub(crate) position_y: Vec<f32>,
+    pub(crate) position_z: Vec<f32>,
+    pub(crate) rotation: Vec<f32>,
+    pub(crate) scale_x: Vec<f32>,
+    pub(crate) scale_y: Vec<f32>,
+    pub(crate) scale_z: Vec<f32>,
+    pub(crate) duration: Vec<f32>,
+    pub(crate) duration_fraction: Vec<f32>,
+    pub(crate) velocity_x: Vec<f32>,
+    pub(crate) velocity_y: Vec<f32>,
+    pub(crate) velocity_z: Vec<f32>,
+    pub(crate) angular_velocity: Vec<f32>,
+    pub(crate) color_r: Vec<f32>,
+    pub(crate) color_g: Vec<f32>,
+    pub(crate) color_b: Vec<f32>,
+    pub(crate) color_a: Vec<f32>,
+    pub(crate) frame: Vec<u32>,
+    pub(crate) linear_acceleration: Vec<f32>,
+    pub(crate) linear_damp: Vec<f32>,
+    pub(crate) angular_acceleration: Vec<f32>,
+    pub(crate) angular_damp: Vec<f32>,
+    pub(crate) gravity_speed: Vec<f32>,
+    pub(crate) gravity_x: Vec<f32>,
+    pub(crate) gravity_y: Vec<f32>,
+    pub(crate) gravity_z: Vec<f32>,
 }
 
-#[derive(Clone, Reflect)]
-pub struct Particle {
-    pub(crate) transform: Transform,
-    pub(crate) duration: f32,
-    pub(crate) duration_fraction: f32,
-    pub(crate) velocity: (Vec3, f32),
-    pub(crate) color: LinearRgba,
-    pub(crate) frame: u32,
-    pub(crate) linear_acceleration: f32,
-    pub(crate) linear_damp: f32,
-    pub(crate) angular_acceleration: f32,
-    pub(crate) angular_damp: f32,
-    pub(crate) gravity_speed: f32,
-    pub(crate) gravity_direction: Vec3,
+impl ParticleStore {
+    pub fn len(&self) -> usize {
+        self.duration.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.duration.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        macro_rules! clear {
+            ($($field:ident),+ $(,)?) => {
+                $(self.$field.clear();)+
+            };
+        }
+        clear!(
+            position_x,
+            position_y,
+            position_z,
+            rotation,
+            scale_x,
+            scale_y,
+            scale_z,
+            duration,
+            duration_fraction,
+            velocity_x,
+            velocity_y,
+            velocity_z,
+            angular_velocity,
+            color_r,
+            color_g,
+            color_b,
+            color_a,
+            frame,
+            linear_acceleration,
+            linear_damp,
+            angular_acceleration,
+            angular_damp,
+            gravity_speed,
+            gravity_x,
+            gravity_y,
+            gravity_z,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn push(
+        &mut self,
+        transform: Transform,
+        duration: f32,
+        velocity: Vec3,
+        angular_velocity: f32,
+        color: LinearRgba,
+        linear_acceleration: f32,
+        linear_damp: f32,
+        angular_acceleration: f32,
+        angular_damp: f32,
+        gravity_speed: f32,
+        gravity_direction: Vec3,
+    ) {
+        self.position_x.push(transform.translation.x);
+        self.position_y.push(transform.translation.y);
+        self.position_z.push(transform.translation.z);
+        self.rotation
+            .push(transform.rotation.to_euler(EulerRot::XYZ).2);
+        self.scale_x.push(transform.scale.x);
+        self.scale_y.push(transform.scale.y);
+        self.scale_z.push(transform.scale.z);
+        self.duration.push(duration);
+        self.duration_fraction.push(0.0);
+        self.velocity_x.push(velocity.x);
+        self.velocity_y.push(velocity.y);
+        self.velocity_z.push(velocity.z);
+        self.angular_velocity.push(angular_velocity);
+        self.color_r.push(color.red);
+        self.color_g.push(color.green);
+        self.color_b.push(color.blue);
+        self.color_a.push(color.alpha);
+        self.frame.push(0);
+        self.linear_acceleration.push(linear_acceleration);
+        self.linear_damp.push(linear_damp);
+        self.angular_acceleration.push(angular_acceleration);
+        self.angular_damp.push(angular_damp);
+        self.gravity_speed.push(gravity_speed);
+        self.gravity_x.push(gravity_direction.x);
+        self.gravity_y.push(gravity_direction.y);
+        self.gravity_z.push(gravity_direction.z);
+    }
+
+    fn swap_remove(&mut self, index: usize) {
+        macro_rules! remove {
+            ($($field:ident),+ $(,)?) => {
+                $(self.$field.swap_remove(index);)+
+            };
+        }
+        remove!(
+            position_x,
+            position_y,
+            position_z,
+            rotation,
+            scale_x,
+            scale_y,
+            scale_z,
+            duration,
+            duration_fraction,
+            velocity_x,
+            velocity_y,
+            velocity_z,
+            angular_velocity,
+            color_r,
+            color_g,
+            color_b,
+            color_a,
+            frame,
+            linear_acceleration,
+            linear_damp,
+            angular_acceleration,
+            angular_damp,
+            gravity_speed,
+            gravity_x,
+            gravity_y,
+            gravity_z,
+        );
+    }
+
+    fn remove_expired(&mut self) {
+        for index in (0..self.len()).rev() {
+            if self.duration_fraction[index] >= 1.0 {
+                self.swap_remove(index);
+            }
+        }
+    }
 }
 
 pub(crate) fn clone_effect(
@@ -122,7 +264,7 @@ pub(crate) fn update_spawner(
 ) {
     particles.par_iter_mut().for_each(
         |(entity, mut store, mut state, effect_instance, transform)| {
-            if state.max_particles <= store.particles.len() as u32 {
+            if state.max_particles <= store.len() as u32 {
                 return;
             }
 
@@ -139,7 +281,7 @@ pub(crate) fn update_spawner(
 
             if state.timer.is_finished() && state.active {
                 for _ in 0..effect.spawn_amount {
-                    store.push(create_particle(effect, &transform))
+                    create_particle(&mut store, effect, &transform);
                 }
 
                 if one_shots.get(entity).is_ok() {
@@ -163,23 +305,23 @@ pub(crate) fn update_spawner(
                 Vec3::ZERO
             };
 
-            store.par_splat_map_mut(ComputeTaskPool::get(), None, |_, particles| {
-                for particle in particles.iter_mut() {
-                    // position_delta should only be a value if relative_positioning is enabled
-                    particle.transform.translation += position_delta;
-
-                    particle
-                        .duration_fraction
-                        .add_assign(delta / particle.duration);
-                    update_particle(particle, effect, delta, spawner_world_pos);
-                }
-            });
-            store.retain(|particle| particle.duration_fraction < 1.0);
+            update_particles(&mut store, effect, delta, spawner_world_pos, position_delta);
+            store.remove_expired();
         },
     );
 }
 
-fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle {
+fn update_particles(
+    particles: &mut ParticleStore,
+    effect: &Particle2dEffect,
+    delta: f32,
+    spawner_world_pos: Vec3,
+    position_delta: Vec3,
+) {
+    update_particles_simd(particles, effect, delta, spawner_world_pos, position_delta);
+}
+
+fn create_particle(store: &mut ParticleStore, effect: &Particle2dEffect, transform: &Transform) {
     // direction
     let direction = effect
         .direction
@@ -255,68 +397,189 @@ fn create_particle(effect: &Particle2dEffect, transform: &Transform) -> Particle
         }
     };
 
-    Particle {
+    store.push(
         transform,
-        velocity: ((direction * speed).extend(0.), angular),
-        duration_fraction: 0.0,
-        duration: effect.lifetime.rand(),
-        color: effect.color.unwrap_or(LinearRgba::WHITE),
-        angular_damp,
+        effect.lifetime.rand(),
+        (direction * speed).extend(0.),
+        angular,
+        effect.color.unwrap_or(LinearRgba::WHITE),
+        linear_acceleration,
         linear_damp,
         angular_acceleration,
-        linear_acceleration,
-        gravity_direction,
+        angular_damp,
         gravity_speed,
-        frame: 0,
-    }
+        gravity_direction,
+    );
 }
 
-fn update_particle(
-    particle: &mut Particle,
+fn load8(values: &[f32], index: usize) -> f32x8 {
+    f32x8::new(values[index..index + 8].try_into().unwrap())
+}
+
+fn store8(values: &mut [f32], index: usize, value: f32x8) {
+    values[index..index + 8].copy_from_slice(&value.to_array());
+}
+
+fn update_particles_simd(
+    particles: &mut ParticleStore,
     effect: &Particle2dEffect,
     delta: f32,
     spawner_world_pos: Vec3,
+    position_delta: Vec3,
 ) {
-    let (lin_velo, rot_velo) = &mut particle.velocity;
-    let progress = particle.duration_fraction;
+    let delta8 = f32x8::splat(delta);
+    let zero = f32x8::ZERO;
+    let one = f32x8::ONE;
+    let simd_len = particles.len() / 8 * 8;
 
-    *lin_velo = *lin_velo - progress * particle.linear_damp * *lin_velo * delta
-        + progress * particle.linear_acceleration * *lin_velo * delta;
+    for index in (0..simd_len).step_by(8) {
+        let mut px = load8(&particles.position_x, index) + f32x8::splat(position_delta.x);
+        let mut py = load8(&particles.position_y, index) + f32x8::splat(position_delta.y);
+        let mut pz = load8(&particles.position_z, index) + f32x8::splat(position_delta.z);
+        let progress =
+            load8(&particles.duration_fraction, index) + delta8 / load8(&particles.duration, index);
 
-    *rot_velo = *rot_velo - progress * particle.angular_damp * *rot_velo * delta
-        + progress * particle.angular_acceleration * *rot_velo * delta;
+        let linear_factor = one
+            + progress
+                * (load8(&particles.linear_acceleration, index)
+                    - load8(&particles.linear_damp, index))
+                * delta8;
+        let mut vx = load8(&particles.velocity_x, index) * linear_factor;
+        let mut vy = load8(&particles.velocity_y, index) * linear_factor;
+        let mut vz = load8(&particles.velocity_z, index) * linear_factor;
+
+        let angular_factor = one
+            + progress
+                * (load8(&particles.angular_acceleration, index)
+                    - load8(&particles.angular_damp, index))
+                * delta8;
+        let angular_velocity = load8(&particles.angular_velocity, index) * angular_factor;
+
+        if let Some(attractors) = &effect.attractors {
+            for attractor in attractors {
+                let attractor_position = spawner_world_pos + attractor.position.extend(0.0);
+                let dx = f32x8::splat(attractor_position.x) - px;
+                let dy = f32x8::splat(attractor_position.y) - py;
+                let dz = f32x8::splat(attractor_position.z) - pz;
+                let distance_squared = dx * dx + dy * dy + dz * dz;
+                let non_zero = distance_squared.simd_gt(zero);
+                let safe_distance_squared = non_zero.blend(distance_squared, one);
+                let force = f32x8::splat(attractor.strength)
+                    / safe_distance_squared.max(f32x8::splat(
+                        attractor.min_distance * attractor.min_distance,
+                    ))
+                    * delta8
+                    / safe_distance_squared.sqrt();
+                let force = non_zero.blend(force, zero);
+                vx += dx * force;
+                vy += dy * force;
+                vz += dz * force;
+            }
+        }
+
+        let gravity = load8(&particles.gravity_speed, index) * delta8;
+        px += vx * delta8 + load8(&particles.gravity_x, index) * gravity;
+        py += vy * delta8 + load8(&particles.gravity_y, index) * gravity;
+        pz += vz * delta8 + load8(&particles.gravity_z, index) * gravity;
+        let rotation = load8(&particles.rotation, index) + angular_velocity * delta8;
+
+        store8(&mut particles.position_x, index, px);
+        store8(&mut particles.position_y, index, py);
+        store8(&mut particles.position_z, index, pz);
+        store8(&mut particles.duration_fraction, index, progress);
+        store8(&mut particles.velocity_x, index, vx);
+        store8(&mut particles.velocity_y, index, vy);
+        store8(&mut particles.velocity_z, index, vz);
+        store8(&mut particles.angular_velocity, index, angular_velocity);
+        store8(&mut particles.rotation, index, rotation);
+    }
+
+    for index in simd_len..particles.len() {
+        update_particle_scalar(
+            particles,
+            effect,
+            index,
+            delta,
+            spawner_world_pos,
+            position_delta,
+        );
+    }
 
     if let Some(scale_curve) = effect.scale_curve.as_ref() {
-        particle.transform.scale = Vec3::splat(scale_curve.lerp(progress));
+        for index in 0..particles.len() {
+            let scale = scale_curve.lerp(particles.duration_fraction[index]);
+            particles.scale_x[index] = scale;
+            particles.scale_y[index] = scale;
+            particles.scale_z[index] = scale;
+        }
     }
 
     if let Some(color_curve) = effect.color_curve.as_ref() {
-        particle.color = color_curve.lerp(progress);
+        for index in 0..particles.len() {
+            let color = color_curve.lerp(particles.duration_fraction[index]);
+            particles.color_r[index] = color.red;
+            particles.color_g[index] = color.green;
+            particles.color_b[index] = color.blue;
+            particles.color_a[index] = color.alpha;
+        }
     }
+}
 
-    // Apply attractor forces from effect
+fn update_particle_scalar(
+    particles: &mut ParticleStore,
+    effect: &Particle2dEffect,
+    index: usize,
+    delta: f32,
+    spawner_world_pos: Vec3,
+    position_delta: Vec3,
+) {
+    particles.position_x[index] += position_delta.x;
+    particles.position_y[index] += position_delta.y;
+    particles.position_z[index] += position_delta.z;
+    particles.duration_fraction[index] += delta / particles.duration[index];
+    let progress = particles.duration_fraction[index];
+
+    let linear_factor = 1.0
+        + progress * (particles.linear_acceleration[index] - particles.linear_damp[index]) * delta;
+    particles.velocity_x[index] *= linear_factor;
+    particles.velocity_y[index] *= linear_factor;
+    particles.velocity_z[index] *= linear_factor;
+
+    let angular_factor = 1.0
+        + progress
+            * (particles.angular_acceleration[index] - particles.angular_damp[index])
+            * delta;
+    particles.angular_velocity[index] *= angular_factor;
+
     if let Some(attractors) = &effect.attractors {
-        for attractor in attractors.iter() {
-            // Transform attractor position from local to world space
-            let attractor_world_pos = spawner_world_pos + attractor.position.extend(0.0);
-            let to_attractor = attractor_world_pos - particle.transform.translation;
-            let distance_sq = to_attractor.length_squared();
+        for attractor in attractors {
+            let attractor_position = spawner_world_pos + attractor.position.extend(0.0);
+            let dx = attractor_position.x - particles.position_x[index];
+            let dy = attractor_position.y - particles.position_y[index];
+            let dz = attractor_position.z - particles.position_z[index];
+            let distance_squared = dx * dx + dy * dy + dz * dz;
 
-            if distance_sq > 0.0 {
-                let distance = distance_sq.sqrt();
-                let min_distance_sq = attractor.min_distance * attractor.min_distance;
-                let force_magnitude = attractor.strength / distance_sq.max(min_distance_sq);
-                let force_direction = to_attractor / distance;
-
-                *lin_velo += force_direction * force_magnitude * delta;
+            if distance_squared > 0.0 {
+                let force = attractor.strength
+                    / distance_squared.max(attractor.min_distance * attractor.min_distance)
+                    * delta
+                    / distance_squared.sqrt();
+                particles.velocity_x[index] += dx * force;
+                particles.velocity_y[index] += dy * force;
+                particles.velocity_z[index] += dz * force;
             }
         }
     }
 
-    let gravity = particle.gravity_direction * particle.gravity_speed * delta;
+    let gravity = particles.gravity_speed[index] * delta;
+    particles.position_x[index] +=
+        particles.velocity_x[index] * delta + particles.gravity_x[index] * gravity;
+    particles.position_y[index] +=
+        particles.velocity_y[index] * delta + particles.gravity_y[index] * gravity;
+    particles.position_z[index] +=
+        particles.velocity_z[index] * delta + particles.gravity_z[index] * gravity;
 
-    particle.transform.translation += *lin_velo * delta + gravity;
-    particle.transform.rotate_local_z(*rot_velo * delta);
+    particles.rotation[index] += particles.angular_velocity[index] * delta;
 }
 
 pub(crate) fn calculate_particle_bounds(
@@ -329,21 +592,123 @@ pub(crate) fn calculate_particle_bounds(
         }
         let accuracy = (store.len() / 1000).clamp(1, 10);
 
-        let (min, max) = store
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| i % accuracy == 0)
-            .fold((Vec2::MAX, Vec2::MIN), |mut acc, (_, particle)| {
-                acc.0.x = acc.0.x.min(particle.transform.translation.x);
-                acc.0.y = acc.0.y.min(particle.transform.translation.y);
-                acc.1.x = acc.1.x.max(particle.transform.translation.x);
-                acc.1.y = acc.1.y.max(particle.transform.translation.y);
-                acc
-            });
+        let (min, max) =
+            (0..store.len())
+                .step_by(accuracy)
+                .fold((Vec2::MAX, Vec2::MIN), |mut acc, index| {
+                    acc.0.x = acc.0.x.min(store.position_x[index]);
+                    acc.0.y = acc.0.y.min(store.position_y[index]);
+                    acc.1.x = acc.1.x.max(store.position_x[index]);
+                    acc.1.y = acc.1.y.max(store.position_y[index]);
+                    acc
+                });
 
         let mut aabb = Aabb::from_min_max(min.extend(0.), max.extend(0.));
         aabb.center -= transform.translation().to_vec3a();
 
         cmd.entity(entity).try_insert(aabb);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        hint::black_box,
+        time::{Duration, Instant},
+    };
+
+    fn particle_store(count: usize) -> ParticleStore {
+        let mut particles = ParticleStore::default();
+        for _ in 0..count {
+            particles.push(
+                Transform::default(),
+                1000.0,
+                Vec3::new(10.0, 5.0, 0.0),
+                0.5,
+                LinearRgba::WHITE,
+                0.2,
+                0.1,
+                0.2,
+                0.1,
+                9.81,
+                Vec3::NEG_Y,
+            );
+        }
+        particles
+    }
+
+    #[test]
+    fn simd_matches_scalar_update() {
+        let effect = Particle2dEffect::default();
+        let mut simd = particle_store(8);
+        let mut scalar = simd.clone();
+        let delta = 1.0 / 60.0;
+
+        update_particles(&mut simd, &effect, delta, Vec3::ZERO, Vec3::ZERO);
+        for index in 0..scalar.len() {
+            update_particle_scalar(&mut scalar, &effect, index, delta, Vec3::ZERO, Vec3::ZERO);
+        }
+
+        for index in 0..simd.len() {
+            for (actual, expected) in [
+                (simd.position_x[index], scalar.position_x[index]),
+                (simd.position_y[index], scalar.position_y[index]),
+                (simd.velocity_x[index], scalar.velocity_x[index]),
+                (simd.velocity_y[index], scalar.velocity_y[index]),
+                (
+                    simd.duration_fraction[index],
+                    scalar.duration_fraction[index],
+                ),
+                (simd.rotation[index], scalar.rotation[index]),
+            ] {
+                assert!((actual - expected).abs() < 1e-5, "{actual} != {expected}");
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "manual performance benchmark"]
+    fn bench_update_one_million_particles() {
+        const PARTICLES: usize = 1_000_000;
+        const WARMUP: usize = 3;
+        const SAMPLES: usize = 20;
+
+        let mut particles = particle_store(PARTICLES);
+        let effect = Particle2dEffect::default();
+
+        for _ in 0..WARMUP {
+            update_particles(
+                black_box(&mut particles),
+                black_box(&effect),
+                black_box(1.0 / 60.0),
+                Vec3::ZERO,
+                Vec3::ZERO,
+            );
+        }
+
+        let mut samples = Vec::with_capacity(SAMPLES);
+        for _ in 0..SAMPLES {
+            let start = Instant::now();
+            update_particles(
+                black_box(&mut particles),
+                black_box(&effect),
+                black_box(1.0 / 60.0),
+                Vec3::ZERO,
+                Vec3::ZERO,
+            );
+            samples.push(start.elapsed());
+        }
+        samples.sort_unstable();
+
+        let median = samples[SAMPLES / 2];
+        let total: Duration = samples.iter().sum();
+        let average = total / SAMPLES as u32;
+        let throughput = PARTICLES as f64 / median.as_secs_f64() / 1_000_000.0;
+
+        black_box(&particles);
+        println!(
+            "1,000,000 particles: median {median:?}, average {average:?}, {throughput:.2} M particles/s"
+        );
+    }
 }

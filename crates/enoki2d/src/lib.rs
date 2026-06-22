@@ -96,7 +96,6 @@ impl Plugin for EnokiPlugin {
         app.register_type::<update::ParticleStore>();
         app.register_type::<update::ParticleSpawnerState>();
         app.register_type::<update::ParticleSpawnerState>();
-        app.register_type::<update::Particle>();
         app.register_type::<ParticleEffectHandle>();
         app.init_asset::<Particle2dEffect>();
         app.init_asset_loader::<loader::ParticleEffectLoader>();
