@@ -27,4 +27,7 @@ tracing-subscriber = "0.3.23"
 bevy_pancam = "0.21"
 
 [target.'cfg(all(target_family = "wasm", any(target_os = "unknown", target_os = "none")))'.dependencies]
-getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+getrandom_03 = { package = "getrandom", version = "0.3", features = [
+  "wasm_js",
+] }
