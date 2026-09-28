@@ -7,6 +7,7 @@ use bevy_egui::{
         self, emath::Numeric, style::HandleShape, Color32, ColorImage, Pos2, Rect, RichText,
         Slider, TextureHandle, TextureOptions, Ui, WidgetText,
     },
+    prelude::egui::AsIdSalt,
     EguiContext, EguiContexts, EguiGlobalSettings,
 };
 use bevy_enoki::prelude::*;
@@ -572,7 +573,7 @@ fn curve_field_color(ui: &mut Ui, curve: &mut bevy_enoki::prelude::MultiCurve<Li
     }
 }
 
-fn easing_select(ui: &mut Ui, id: impl std::hash::Hash, easing: &mut Option<EaseFunction>) {
+fn easing_select(ui: &mut Ui, id: impl AsIdSalt, easing: &mut Option<EaseFunction>) {
     egui::ComboBox::new(id, "")
         .selected_text(ron::ser::to_string(easing).unwrap())
         .show_ui(ui, |ui| {
@@ -657,7 +658,7 @@ pub(crate) fn configure_egui(mut contexts: Query<&mut EguiContext, Added<EguiCon
                 context.get_mut().set_fonts(fonts);
             }
         }
-        context.get_mut().style_mut(|style| {
+        context.get_mut().global_style_mut(|style| {
             for font_id in style.text_styles.values_mut() {
                 font_id.size *= 1.3;
             }
