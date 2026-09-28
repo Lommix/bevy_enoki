@@ -463,14 +463,14 @@ fn update_particles_simd(
                 let dz = f32x8::splat(attractor_position.z) - pz;
                 let distance_squared = dx * dx + dy * dy + dz * dz;
                 let non_zero = distance_squared.simd_gt(zero);
-                let safe_distance_squared = non_zero.blend(distance_squared, one);
+                let safe_distance_squared = non_zero.select(distance_squared, one);
                 let force = f32x8::splat(attractor.strength)
                     / safe_distance_squared.max(f32x8::splat(
                         attractor.min_distance * attractor.min_distance,
                     ))
                     * delta8
                     / safe_distance_squared.sqrt();
-                let force = non_zero.blend(force, zero);
+                let force = non_zero.select(force, zero);
                 vx += dx * force;
                 vy += dy * force;
                 vz += dz * force;
