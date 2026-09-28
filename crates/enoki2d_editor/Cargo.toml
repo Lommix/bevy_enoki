@@ -15,7 +15,7 @@ anyhow = "1.0.104"
 bevy = "0.18"
 egui_plot = "0.34"
 bevy_enoki = { path = "../enoki2d" }
-crossbeam = { version = "0.8.4", features = [
+crossbeam = { version = "0.8.5", features = [
   "crossbeam-deque",
   "crossbeam-channel",
 ] }
