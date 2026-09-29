@@ -1,6 +1,5 @@
-use bevy::diagnostic::DiagnosticsStore;
 use bevy::post_process::bloom::Bloom;
-use bevy::render::view::Hdr;
+use bevy::{camera::Hdr, diagnostic::DiagnosticsStore};
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_egui::egui::{self, Color32, RichText};
 use bevy_egui::egui::{FontFamily, FontId};
@@ -283,7 +282,7 @@ fn update_spawner(
 fn gui(
     mut context: bevy_egui::EguiContexts,
     mut effect_query: Query<(&mut ParticleEffectInstance, &mut ParticleSpawnerState)>,
-    editor_state: Res<EditorState>,
+    mut editor_state: ResMut<EditorState>,
     effect_channel: Res<EffectChannel>,
     texture_channel: Res<TextureChannel>,
     #[cfg(not(target_arch = "wasm32"))] watcher: Res<shader::ShaderWatch>,
@@ -297,11 +296,18 @@ fn gui(
     ctx.all_styles_mut(|style| {
         style.interaction.selectable_labels = false;
     });
-    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(5));
+    let frame = egui::Frame::canvas(&ctx.global_style()).inner_margin(egui::Margin::same(5));
+    let mut ui = egui::Ui::new(
+        ctx.clone(),
+        "viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(egui::LayerId::background())
+            .max_rect(ctx.viewport_rect()),
+    );
 
-    egui::TopBottomPanel::top("Enoki particle editor")
+    egui::Panel::top("Enoki particle editor")
         .frame(frame)
-        .show(ctx, |ui| {
+        .show(&mut ui, |ui| {
             ui.horizontal(|ui| {
                 let styles = ui.style_mut();
 
@@ -370,15 +376,15 @@ fn gui(
                 });
             });
         });
-    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
-
+    let frame = egui::Frame::canvas(&ctx.global_style()).inner_margin(egui::Margin::same(15));
     let Some(effect) = effect_instance.0.as_mut() else {
         return;
     };
-    egui::SidePanel::right("Config")
+
+    egui::Panel::right("Config")
         .frame(frame)
-        .min_width(300.0)
-        .show_animated(ctx, editor_state.open_toolbox, |ui| {
+        .min_size(300.0)
+        .show_collapsible(&mut ui, &mut editor_state.open_toolbox, |ui| {
             egui::scroll_area::ScrollArea::new([false, true]).show(ui, |ui| {
                 gui::config_gui(ui, effect, &mut state);
             });
@@ -398,12 +404,18 @@ pub(crate) fn left_panel(
     let Ok(ctx) = context.ctx_mut() else {
         return;
     };
-    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(15));
-
-    let inner_response = egui::SidePanel::left("Settings")
+    let frame = egui::Frame::canvas(&ctx.global_style()).inner_margin(egui::Margin::same(15));
+    let mut ui = egui::Ui::new(
+        ctx.clone(),
+        "viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(egui::LayerId::background())
+            .max_rect(ctx.viewport_rect()),
+    );
+    let inner_response = egui::Panel::left("Settings")
         .frame(frame)
-        .min_width(250.0)
-        .show_animated(ctx, editor_state.open_settings, |ui| {
+        .min_size(250.0)
+        .show_collapsible(&mut ui, &mut editor_state.open_settings, |ui| {
             ui.vertical_centered_justified(|ui| {
                 ui.label(RichText::new("Settings").strong().size(25.0));
                 ui.separator();
@@ -439,7 +451,7 @@ pub(crate) fn in_game_settings(
         return;
     };
     let particle_count = particles.len();
-    let frame = egui::Frame::canvas(&ctx.style())
+    let frame = egui::Frame::canvas(&ctx.global_style())
         .fill(Color32::from_rgba_premultiplied(0, 0, 0, 150))
         .corner_radius(8)
         .inner_margin(egui::Margin::same(8));
@@ -516,30 +528,35 @@ pub(crate) fn bottom_panel(
     let Ok(ctx) = context.ctx_mut() else {
         return;
     };
-    let frame = egui::Frame::canvas(&ctx.style()).inner_margin(egui::Margin::same(5));
-    let response = egui::TopBottomPanel::bottom("log")
-        .frame(frame)
-        .show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                let text = "Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom";
-                if logs.is_empty() {
-                    ui.label(text);
-                } else {
-                    ui.collapsing(text, |ui| {
-                        for entry in logs.iter() {
-                            let msg = format!("[{}]: {}", entry.metadata.level(), entry.message);
-                            ui.label(msg);
-                        }
-                    });
-                    if ui.button("Clear Log").clicked() {
-                        cmd.run_system_cached(log::clear_logs);
+    let frame = egui::Frame::canvas(&ctx.global_style()).inner_margin(egui::Margin::same(5));
+    let mut ui = egui::Ui::new(
+        ctx.clone(),
+        "viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(egui::LayerId::background())
+            .max_rect(ctx.viewport_rect()),
+    );
+    let response = egui::Panel::bottom("log").frame(frame).show(&mut ui, |ui| {
+        ui.horizontal(|ui| {
+            let text = "Log - [Mouse::Middle]: pan [Mouse::Wheel]: zoom";
+            if logs.is_empty() {
+                ui.label(text);
+            } else {
+                ui.collapsing(text, |ui| {
+                    for entry in logs.iter() {
+                        let msg = format!("[{}]: {}", entry.metadata.level(), entry.message);
+                        ui.label(msg);
                     }
+                });
+                if ui.button("Clear Log").clicked() {
+                    cmd.run_system_cached(log::clear_logs);
                 }
-                if ui.button("Settings").clicked() {
-                    cmd.run_system_cached_with(open_settings, !editor_state.open_settings);
-                }
-            });
+            }
+            if ui.button("Settings").clicked() {
+                cmd.run_system_cached_with(open_settings, !editor_state.open_settings);
+            }
         });
+    });
     editor_state.logs_height = response.response.rect.height();
 }
 

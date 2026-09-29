@@ -42,7 +42,7 @@ pub fn log_capture_layer(app: &mut App) -> Option<BoxedLayer> {
     let layer = CaptureLayer { sender };
     let log_receiver = LogEventsReceiver(receiver);
 
-    app.insert_non_send_resource(log_receiver);
+    app.insert_non_send(log_receiver);
     Some(layer.boxed())
 }
 
