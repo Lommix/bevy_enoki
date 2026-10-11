@@ -1,3 +1,14 @@
+# 0.8.0
+
+- bevy 0.20 update.
+  !BREAKINGCHANGE! custom shaders are now `wesl` files. Rename your shader files from `.wgsl` to
+  `.wesl` and replace the old preprocessor import with a module import:
+  ```wesl
+  import bevy_enoki::shaders::particle_vertex_out::VertexOutput;
+  ```
+- added support for Bevy Scenes (BSN). `ParticleSpawner` and `ParticleEffectHandle` can now be
+  spawned via `bsn!` and `spawn_scene`. See `example/src/bsn.rs`.
+
 # 0.7.0
 
 - bevy 0.19 update

@@ -20,7 +20,7 @@ use wide::f32x8;
 
 /// Tag Component, deactivates spawner after the first
 /// spawning of particles
-#[derive(Component, Default, Debug, Reflect)]
+#[derive(Component, Default, Debug, Reflect, Clone)]
 #[reflect(Component, Debug, Default)]
 pub enum OneShot {
     #[default]

@@ -7,7 +7,7 @@ use self::prelude::{
 };
 use crate::sprite::SpriteParticle2dMaterial;
 use bevy_app::{App, First, Plugin, PostUpdate, Update};
-use bevy_asset::{load_internal_asset, uuid_handle, Asset, AssetApp, AssetEvent, Assets, Handle};
+use bevy_asset::{uuid_handle, Asset, AssetApp, AssetEvent, Assets, Handle};
 use bevy_camera::{
     primitives::Aabb,
     visibility::{add_visibility_class, Visibility, VisibilityClass, VisibilitySystems},
@@ -17,6 +17,7 @@ use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{
     component::Component,
     schedule::{common_conditions::on_message, IntoScheduleConfigs},
+    template::FromTemplate,
 };
 use bevy_math::Vec2;
 use bevy_reflect::{Reflect, TypePath};
@@ -62,33 +63,53 @@ pub(crate) const PARTICLE_SPRITE_FRAG: Handle<Shader> =
 pub struct EnokiPlugin;
 impl Plugin for EnokiPlugin {
     fn build(&self, app: &mut App) {
-        load_internal_asset!(
-            app,
-            PARTICLE_VERTEX_OUT,
-            "shaders/particle_vertex_out.wgsl",
-            Shader::from_wgsl
-        );
-
-        load_internal_asset!(
-            app,
-            PARTICLE_VERTEX,
-            "shaders/particle_vertex.wgsl",
-            Shader::from_wgsl
-        );
-
-        load_internal_asset!(
-            app,
-            PARTICLE_COLOR_FRAG,
-            "shaders/particle_color_frag.wgsl",
-            Shader::from_wgsl
-        );
-
-        load_internal_asset!(
-            app,
-            PARTICLE_SPRITE_FRAG,
-            "shaders/particle_sprite_frag.wgsl",
-            Shader::from_wgsl
-        );
+        {
+            let mut shaders = app.world_mut().resource_mut::<Assets<Shader>>();
+            if !shaders.contains(PARTICLE_VERTEX_OUT.id()) {
+                shaders
+                    .insert(
+                        PARTICLE_VERTEX_OUT.id(),
+                        Shader::from_wesl(
+                            include_str!("shaders/particle_vertex_out.wesl"),
+                            "embedded://bevy_enoki/shaders/particle_vertex_out.wesl",
+                        ),
+                    )
+                    .unwrap();
+            }
+            if !shaders.contains(PARTICLE_VERTEX.id()) {
+                shaders
+                    .insert(
+                        PARTICLE_VERTEX.id(),
+                        Shader::from_wesl(
+                            include_str!("shaders/particle_vertex.wesl"),
+                            "embedded://bevy_enoki/shaders/particle_vertex.wesl",
+                        ),
+                    )
+                    .unwrap();
+            }
+            if !shaders.contains(PARTICLE_COLOR_FRAG.id()) {
+                shaders
+                    .insert(
+                        PARTICLE_COLOR_FRAG.id(),
+                        Shader::from_wesl(
+                            include_str!("shaders/particle_color_frag.wesl"),
+                            "embedded://bevy_enoki/shaders/particle_color_frag.wesl",
+                        ),
+                    )
+                    .unwrap();
+            }
+            if !shaders.contains(PARTICLE_SPRITE_FRAG.id()) {
+                shaders
+                    .insert(
+                        PARTICLE_SPRITE_FRAG.id(),
+                        Shader::from_wesl(
+                            include_str!("shaders/particle_sprite_frag.wesl"),
+                            "embedded://bevy_enoki/shaders/particle_sprite_frag.wesl",
+                        ),
+                    )
+                    .unwrap();
+            }
+        }
 
         app.add_plugins(material::Particle2dMaterialPlugin::<SpriteParticle2dMaterial>::default());
         app.add_plugins(material::Particle2dMaterialPlugin::<ColorParticle2dMaterial>::default());
@@ -143,7 +164,7 @@ impl Plugin for EnokiPlugin {
 
 /// adding this component will disabled auto
 /// aabb caluclation. Aabb resolves to it's default size.
-#[derive(Component)]
+#[derive(Component, Default, Clone)]
 pub struct NoAutoAabb;
 
 /// tag component for visibilty check
@@ -154,7 +175,7 @@ pub struct RenderParticleTag;
 
 /// The main particle spawner components
 /// has required components
-#[derive(Component, DerefMut, Deref, Clone)]
+#[derive(Component, DerefMut, Deref, Clone, FromTemplate)]
 #[require(
     ParticleSpawnerState,
     ParticleEffectInstance,
@@ -198,7 +219,7 @@ pub struct Attractor {
 /// holds the effect asset. Changing the Asset, will
 /// effect all spanwers using it. Instead use `ParticleEffectInstance`,
 /// which is a unique copy for each spawner,
-#[derive(Component, Reflect, Deref, DerefMut, Default)]
+#[derive(Component, Reflect, Deref, DerefMut, Default, Clone, FromTemplate)]
 #[reflect]
 pub struct ParticleEffectHandle(pub Handle<Particle2dEffect>);
 

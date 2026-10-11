@@ -26,6 +26,7 @@ The default material allows not only for custom textures, but also sprite sheet 
 
 | bevy | bevy_enoki |
 | ---: | ---------: |
+| 0.20 |        0.8 |
 | 0.19 |        0.7 |
 | 0.18 |        0.6 |
 | 0.17 |        0.5 |
@@ -47,7 +48,7 @@ Enoki has a feature rich Editor.
 
 Get started by installing it via cargo
 
-```
+```shell
 cargo install enoki2d_editor
 ```
 
@@ -59,6 +60,7 @@ cargo install enoki2d_editor
 cargo run -p example --bin material
 cargo run -p example --bin sprites
 cargo run -p example --bin dynamic
+cargo run -p example --bin bsn
 ```
 
 ## Usage
@@ -66,12 +68,12 @@ cargo run -p example --bin dynamic
 Add the `bevy_enoki` dependency to your `Cargo.toml`
 
 ```toml
-bevy_enoki = "0.2.2"
+bevy_enoki = "0.8"
 ```
 
 Add the `EnokiPlugin` to your app
 
-```rust
+```rust,ignore
 App::new()
     .add_plugins(DefaultPlugins)
     .add_plugins(EnokiPlugin)
@@ -80,7 +82,7 @@ App::new()
 
 Create your first particle spawner.
 
-```rust
+```rust,ignore
 use bevy_enoki::prelude::*;
 
 fn setup(
@@ -88,7 +90,7 @@ fn setup(
     mut materials: ResMut<Assets<SpriteParticle2dMaterial>>,
     server : Res<AssetServer>,
 ){
-    cmd.spawn(Camera2dBundle::default());
+    cmd.spawn(Camera2d);
 
     // minimal setup
     // white quads with a default effect
@@ -141,7 +143,7 @@ and thus added, if not provided.
 Just like any other Bevy material, you can define your own
 fragment shader.
 
-```rust
+```rust,ignore
 #[derive(AsBindGroup, Asset, TypePath, Clone, Default)]
 pub struct FireParticleMaterial {
     #[texture(0)]
@@ -150,8 +152,8 @@ pub struct FireParticleMaterial {
 }
 
 impl Particle2dMaterial for FireParticleMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
-        "custom_material.wgsl".into()
+    fn fragment_shader() -> bevy::shader::ShaderRef {
+        "custom_material.wesl".into()
     }
 }
 
@@ -166,9 +168,9 @@ fn setup(){
 
 ## Create a shader
 
-```wgsl
-//assets/custom_material.wgsl
-#import bevy_enoki::particle_vertex_out::{ VertexOutput }
+```wesl
+//assets/custom_material.wesl
+import bevy_enoki::shaders::particle_vertex_out::VertexOutput;
 
 @group(1) @binding(0) var texture: texture_2d<f32>;
 @group(1) @binding(1) var texture_sampler: sampler;
@@ -184,7 +186,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 
 That's it, now add the Material to your Spawner! These are the values provided by the vertex shader:
 
-```wgsl
+```wesl
 struct VertexOutput {
   @builtin(position) clip_position: vec4<f32>,
   @location(0) @interpolate(flat) color: vec4<f32>,
@@ -198,7 +200,7 @@ struct VertexOutput {
 
 [Here is a default ron config](example/assets/base.particle.ron)
 
-```rust
+```rust,ignore
 #[derive(Deserialize, Default, Clone, Debug)]
 pub enum EmissionShape {
     #[default]
@@ -231,7 +233,7 @@ pub struct Particle2dEffect {
 This how you create a `MultiCurve`. Currently, Supports `LinearRgba` and `f32`.
 `RVal` stands for any Value with a randomness property between 0 - 1.
 
-```rust
+```rust,ignore
 let curve = MultiCurve::new()
     .with_point(LinearRgba::RED, 0.0, None)
     .with_point(LinearRgba::BLUE, 1.0, Some(EaseFunction::SineInOut));

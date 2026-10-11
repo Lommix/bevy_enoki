@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.19"
+bevy = "0.20"
 bevy_enoki = { path = "../crates/enoki2d" }
 rand = "0.10.3"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-bevy = { version = "0.19", features = ["file_watcher"] }
+bevy = { version = "0.20", features = ["file_watcher"] }
 
 [target.'cfg(all(target_family = "wasm", any(target_os = "unknown", target_os = "none")))'.dependencies]
 getrandom = { version = "0.4", features = ["wasm_js"] }
@@ -36,3 +36,7 @@ path = "src/attractor.rs"
 [[bin]]
 name = "relative_position"
 path = "src/relative_position.rs"
+
+[[bin]]
+name = "bsn"
+path = "src/bsn.rs"

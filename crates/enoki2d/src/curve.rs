@@ -1,8 +1,6 @@
 use bevy_color::{Color, ColorToComponents, LinearRgba};
-use bevy_math::{
-    curve::{EaseFunction, EasingCurve},
-    Curve, FloatExt,
-};
+use bevy_curve::{Curve, EaseFunction, EasingCurve};
+use bevy_math::FloatExt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Default, Serialize, Debug, Clone)]

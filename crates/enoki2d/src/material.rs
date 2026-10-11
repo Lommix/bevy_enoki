@@ -22,6 +22,7 @@ use bevy_math::{FloatOrd, Vec4};
 use bevy_mesh::{PrimitiveTopology, VertexBufferLayout};
 use bevy_reflect::Reflect;
 use bevy_render::{
+    material_bind_groups::FallbackBuffer,
     render_asset::{PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets},
     render_phase::{
         AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -37,6 +38,7 @@ use bevy_render::{
         VertexStepMode,
     },
     renderer::{RenderDevice, RenderQueue},
+    storage::GpuShaderBuffer,
     sync_world::RenderEntity,
     view::{
         ExtractedView, Msaa, RenderVisibleEntities, ViewUniform, ViewUniformOffset, ViewUniforms,
@@ -408,6 +410,8 @@ impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
     type Param = (
         SRes<RenderDevice>,
         SRes<PipelineCache>,
+        SRes<FallbackBuffer>,
+        SRes<RenderAssets<GpuShaderBuffer>>,
         SRes<Particle2dPipeline<M>>,
         M::Param,
     );
@@ -415,13 +419,22 @@ impl<M: Particle2dMaterial> RenderAsset for PreparedParticleMaterial<M> {
     fn prepare_asset(
         material: Self::SourceAsset,
         _: AssetId<Self::SourceAsset>,
-        (render_device, pipeline_cache, pipeline, param): &mut SystemParamItem<Self::Param>,
+        (
+            render_device,
+            pipeline_cache,
+            fallback_buffer,
+            shader_buffer_assets,
+            pipeline,
+            param,
+        ): &mut SystemParamItem<Self::Param>,
         _: Option<&Self>,
     ) -> Result<Self, bevy_render::render_asset::PrepareAssetError<Self::SourceAsset>> {
         match material.as_bind_group(
             &pipeline.uniform_layout,
             render_device,
             pipeline_cache,
+            fallback_buffer,
+            shader_buffer_assets,
             param,
         ) {
             Ok(prepared) => Ok(PreparedParticleMaterial {
@@ -565,6 +578,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
                 shader: self.vertex_shader.clone(),
                 shader_defs: vec![],
                 entry_point: Some("vertex".into()),
+                constants: vec![],
                 buffers: vec![VertexBufferLayout {
                     array_stride: 48,
                     step_mode: VertexStepMode::Instance,
@@ -594,6 +608,7 @@ impl<M: Particle2dMaterial> SpecializedRenderPipeline for Particle2dPipeline<M> 
                 shader: self.fragment_shader.clone(),
                 shader_defs: vec![],
                 entry_point: Some("fragment".into()),
+                constants: vec![],
                 targets: vec![Some(ColorTargetState {
                     format: key.mesh_key.target_format(),
                     blend: Some(BlendState::ALPHA_BLENDING),

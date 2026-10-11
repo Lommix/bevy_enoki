@@ -44,6 +44,6 @@ pub struct FireParticleMaterial {
 
 impl Particle2dMaterial for FireParticleMaterial {
     fn fragment_shader() -> bevy::shader::ShaderRef {
-        "custom_material.wgsl".into()
+        "custom_material.wesl".into()
     }
 }

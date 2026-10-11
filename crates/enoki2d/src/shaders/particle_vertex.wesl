@@ -1,5 +1,5 @@
-#import bevy_render::view::View
-#import bevy_enoki::particle_vertex_out::{ VertexOutput }
+import bevy_render::view::View;
+import bevy_enoki::shaders::particle_vertex_out::VertexOutput;
 
 @group(0) @binding(0) var<uniform> view: View;
 
