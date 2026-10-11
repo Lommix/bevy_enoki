@@ -1,6 +1,6 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![allow(rustdoc::redundant_explicit_links)]
-#![doc = include_str!("../../../README.md")]
+#![doc = include_str!("../README.md")]
 
 use self::prelude::{
     Particle2dMaterial, ParticleEffectInstance, ParticleSpawnerState, ParticleStore,
