@@ -10,9 +10,9 @@ readme = "README.md"
 edition = "2021"
 
 [dependencies]
-bevy_egui = "0.42"
+bevy_egui = "0.43"
 anyhow = "1.0.104"
-bevy = "0.19"
+bevy = { version = "0.20", features = ["pan_camera"] }
 egui_plot = "0.37"
 bevy_enoki = { path = "../enoki2d", version = "0.8" }
 crossbeam = { version = "0.8.5", features = [
