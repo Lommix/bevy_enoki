@@ -1,16 +1,18 @@
 import bevy_enoki::shaders::particle_vertex_out::VertexOutput;
 
-@group(1) @binding(0) var texture: texture_2d<f32>;
-@group(1) @binding(1) var texture_sampler: sampler;
-@group(1) @binding(2) var<uniform> frame_data: vec4<u32>;
-
+@group(1) @binding(0)
+var texture: texture_2d<f32>;
+@group(1) @binding(1)
+var texture_sampler: sampler;
+@group(1) @binding(2)
+var<uniform> frame_data: vec4<u32>;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-	var out = in.color;
+    var out = in.color;
 
-	let max_hframe = f32(frame_data.x);
-	let max_vframe = f32(frame_data.y);
+    let max_hframe = f32(frame_data.x);
+    let max_vframe = f32(frame_data.y);
 
     let total_frames = max_hframe * max_vframe;
     let current_frame = floor(in.lifetime_frac * total_frames);
@@ -25,5 +27,5 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let v_offset = (max_vframe - vframe - 1.0) * frame_height;
 
     let uv = in.uv * vec2<f32>(frame_width, frame_height) + vec2<f32>(u_offset, v_offset);
-	return out * textureSample(texture, texture_sampler, uv);
+    return out * textureSample(texture, texture_sampler, uv);
 }

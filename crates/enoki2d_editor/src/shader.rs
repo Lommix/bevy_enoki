@@ -72,15 +72,15 @@ fn get_last_modified(path: impl AsRef<Path>) -> anyhow::Result<SystemTime> {
 
 fn load_shader(path: impl AsRef<Path>) -> anyhow::Result<Shader> {
     let shader_str = std::fs::read_to_string(path)?;
-    Ok(Shader::from_wgsl(shader_str, ""))
+    Ok(Shader::from_wesl(shader_str, ""))
 }
 
 pub fn setup(mut shaders: ResMut<Assets<Shader>>) {
-    _ = shaders.insert(&SPRITE_SHADER, Shader::from_wgsl(DEFAULT_SHADER_STR, ""));
+    _ = shaders.insert(&SPRITE_SHADER, Shader::from_wesl(DEFAULT_SHADER_STR, ""));
 }
 
 pub const DEFAULT_SHADER_STR: &str = r#"
-#import bevy_enoki::particle_vertex_out::{ VertexOutput }
+import bevy_enoki::shaders::particle_vertex_out::VertexOutput;
 
 @group(1) @binding(0) var texture: texture_2d<f32>;
 @group(1) @binding(1) var texture_sampler: sampler;
@@ -138,7 +138,7 @@ pub fn open_shader_save(wrapper: Arc<Mutex<Option<ShaderWrapper>>>) {
         .spawn(async move {
             if let Some(handle) = AsyncFileDialog::new()
                 .set_title("save shader template")
-                .set_file_name("my_new_shader.wgsl")
+                .set_file_name("my_new_shader.wesl")
                 .save_file()
                 .await
             {
