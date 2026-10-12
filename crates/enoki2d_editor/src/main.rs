@@ -1,11 +1,14 @@
 use bevy::post_process::bloom::Bloom;
-use bevy::{camera::Hdr, diagnostic::DiagnosticsStore};
+use bevy::{
+    camera::Hdr,
+    camera_controller::pan_camera::{MousePanSettings, PanCamera, PanCameraPlugin},
+    diagnostic::DiagnosticsStore,
+};
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_egui::egui::{self, Color32, RichText};
 use bevy_egui::egui::{FontFamily, FontId};
 use bevy_egui::EguiPrimaryContextPass;
 use bevy_enoki::prelude::*;
-use bevy_pancam::{PanCam, PanCamPlugin};
 use file::{EffectChannel, TextureChannel};
 use log::LogBuffer;
 
@@ -105,7 +108,7 @@ fn main() {
                     }),
                     ..Default::default()
                 }),
-            PanCamPlugin,
+            PanCameraPlugin,
             EnokiPlugin,
             bevy_egui::EguiPlugin::default(),
             file::FileManagerPlugin,
@@ -192,9 +195,12 @@ fn setup(mut cmd: Commands, mut particle_materials: ResMut<Assets<shader::Sprite
             ..default()
         },
         Msaa::Off,
-        PanCam {
-            grab_buttons: vec![MouseButton::Middle],
-            ..default()
+        PanCamera {
+            mouse_pan_settings: MousePanSettings {
+                button: PointerButton::Middle,
+                enabled: true,
+            },
+            ..Default::default()
         },
     ));
 
